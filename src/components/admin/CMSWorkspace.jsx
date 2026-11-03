@@ -33,6 +33,7 @@ import {
   Palette,
   CheckCircle2,
   Edit3,
+  LayoutGrid,
 } from 'lucide-react';
 import { useCMS, CMSPreviewProvider } from '../../context/CMSContext';
 
