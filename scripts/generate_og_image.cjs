@@ -2,23 +2,25 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// 1. Prepare Base64 assets
+// 1. Prepare Base64 Brand Assets (Logo & Favicon Mark ONLY — NO Human/Stock Photos)
 const logoPath = path.resolve('public/assets/sahara-logo.png');
 const markPath = path.resolve('public/assets/sahara-mark.png');
-const execImgPath = path.resolve('public/assets/talent-exec.jpg');
 
-const logoB64 = fs.existsSync(logoPath) ? `data:image/png;base64,${fs.readFileSync(logoPath).toString('base64')}` : '';
-const markB64 = fs.existsSync(markPath) ? `data:image/png;base64,${fs.readFileSync(markPath).toString('base64')}` : '';
-const execB64 = fs.existsSync(execImgPath) ? `data:image/jpeg;base64,${fs.readFileSync(execImgPath).toString('base64')}` : '';
+const logoB64 = fs.existsSync(logoPath)
+  ? `data:image/png;base64,${fs.readFileSync(logoPath).toString('base64')}`
+  : '';
+const markB64 = fs.existsSync(markPath)
+  ? `data:image/png;base64,${fs.readFileSync(markPath).toString('base64')}`
+  : '';
 
-// 2. Generate HTML Template (1200 x 630 px)
+// 2. Generate Pure-Brand HTML Template (1200 x 630 px standard social card)
 const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Sahara Staffing Open Graph Card</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
     * {
       box-sizing: border-box;
@@ -44,47 +46,49 @@ const htmlContent = `<!DOCTYPE html>
       position: relative;
       width: 1200px;
       height: 630px;
-      background: radial-gradient(circle at 88% 25%, rgba(230, 157, 43, 0.18) 0%, transparent 48%),
-                  radial-gradient(circle at 12% 85%, rgba(230, 157, 43, 0.08) 0%, transparent 40%),
-                  radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.7) 0%, #080B12 100%);
+      background: radial-gradient(circle at 82% 25%, rgba(230, 157, 43, 0.22) 0%, transparent 48%),
+                  radial-gradient(circle at 14% 85%, rgba(230, 157, 43, 0.10) 0%, transparent 42%),
+                  radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.75) 0%, #080B12 100%);
       padding: 56px 68px;
       display: flex;
       flex-direction: row;
       justify-content: space-between;
+      align-items: stretch;
       overflow: hidden;
-      border: 1px solid rgba(230, 157, 43, 0.22);
+      border: 1.5px solid rgba(230, 157, 43, 0.28);
     }
 
-    /* Ambient Gold Light Ring in Background */
+    /* Ambient Orbital Rings in Background */
     .bg-orbital-ring {
       position: absolute;
-      right: -80px;
-      top: -60px;
-      width: 580px;
-      height: 580px;
+      right: -60px;
+      top: -40px;
+      width: 600px;
+      height: 600px;
       border-radius: 50%;
-      border: 1px dashed rgba(230, 157, 43, 0.16);
-      pointer-events: none;
-    }
-    .bg-orbital-ring-2 {
-      position: absolute;
-      right: -20px;
-      top: 0px;
-      width: 460px;
-      height: 460px;
-      border-radius: 50%;
-      border: 1px solid rgba(230, 157, 43, 0.22);
+      border: 1px dashed rgba(230, 157, 43, 0.18);
       pointer-events: none;
     }
 
-    /* Grid overlay pattern */
+    .bg-orbital-ring-2 {
+      position: absolute;
+      right: 0px;
+      top: 20px;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      border: 1px solid rgba(230, 157, 43, 0.24);
+      pointer-events: none;
+    }
+
+    /* Architectural Subtle Grid Overlay */
     .grid-overlay {
       position: absolute;
       inset: 0;
-      background-image: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-                        linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-image: linear-gradient(to right, rgba(255,255,255,0.035) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255,255,255,0.035) 1px, transparent 1px);
       background-size: 40px 40px;
-      mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 80%);
+      mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 85%);
       pointer-events: none;
     }
 
@@ -92,7 +96,7 @@ const htmlContent = `<!DOCTYPE html>
     .left-col {
       position: relative;
       z-index: 10;
-      width: 650px;
+      width: 640px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -115,13 +119,13 @@ const htmlContent = `<!DOCTYPE html>
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 14px;
+      padding: 6px 15px;
       border-radius: 9999px;
-      background: rgba(230, 157, 43, 0.12);
-      border: 1px solid rgba(230, 157, 43, 0.35);
-      font-size: 11px;
+      background: rgba(230, 157, 43, 0.14);
+      border: 1px solid rgba(230, 157, 43, 0.4);
+      font-size: 11.5px;
       font-weight: 700;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       color: #E69D2B;
     }
@@ -138,7 +142,7 @@ const htmlContent = `<!DOCTYPE html>
       font-family: 'Outfit', sans-serif;
       font-size: 48px;
       font-weight: 800;
-      line-height: 1.14;
+      line-height: 1.13;
       letter-spacing: -0.025em;
       color: #FFFFFF;
       margin-top: 18px;
@@ -153,24 +157,24 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     .hero-desc {
-      font-size: 17px;
-      line-height: 1.5;
+      font-size: 16.5px;
+      line-height: 1.55;
       color: #94A3B8;
       margin-bottom: 24px;
       max-width: 580px;
       font-weight: 400;
     }
 
-    /* Trust Stats Row */
+    /* Trust Metrics Row */
     .metrics-row {
       display: flex;
       gap: 16px;
     }
 
     .stat-card {
-      background: rgba(15, 23, 42, 0.65);
+      background: rgba(15, 23, 42, 0.7);
       backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.09);
       border-radius: 14px;
       padding: 12px 18px;
       min-width: 155px;
@@ -188,7 +192,7 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     .stat-label {
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -201,7 +205,7 @@ const htmlContent = `<!DOCTYPE html>
       display: flex;
       align-items: center;
       gap: 16px;
-      margin-top: 18px;
+      margin-top: 16px;
     }
 
     .domain-pill {
@@ -234,145 +238,122 @@ const htmlContent = `<!DOCTYPE html>
       color: #94A3B8;
     }
 
-    /* Right Card Mockup Column */
+    /* Right Column: Architectural Brand Showcase (NO PHOTOS) */
     .right-col {
       position: relative;
       z-index: 10;
+      width: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .showcase-card {
+      position: relative;
       width: 380px;
+      background: linear-gradient(145deg, rgba(20, 27, 44, 0.92) 0%, rgba(10, 14, 24, 0.96) 100%);
+      backdrop-filter: blur(24px);
+      border-radius: 28px;
+      border: 1.5px solid rgba(230, 157, 43, 0.35);
+      box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.85),
+                  0 0 50px rgba(230, 157, 43, 0.16);
+      padding: 30px 26px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 18px;
+    }
+
+    /* Center Favicon Medallion with Radiant Glow */
+    .favicon-medallion {
+      position: relative;
+      width: 108px;
+      height: 108px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(230, 157, 43, 0.25) 0%, rgba(11, 15, 23, 0.95) 70%);
+      border: 2px solid rgba(230, 157, 43, 0.55);
+      box-shadow: 0 0 32px rgba(230, 157, 43, 0.4),
+                  inset 0 0 20px rgba(230, 157, 43, 0.25);
       display: flex;
       align-items: center;
       justify-content: center;
+      margin-bottom: 2px;
     }
 
-    .card-wrap {
-      position: relative;
-      width: 350px;
-      background: linear-gradient(145deg, rgba(26, 34, 52, 0.85) 0%, rgba(13, 19, 32, 0.95) 100%);
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      border: 1px solid rgba(230, 157, 43, 0.3);
-      box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.75),
-                  0 0 40px rgba(230, 157, 43, 0.12);
-      padding: 22px;
+    .favicon-icon {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 14px rgba(230, 157, 43, 0.7));
+    }
+
+    .brand-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: #FFFFFF;
+      line-height: 1.2;
+    }
+
+    .brand-kicker {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #E69D2B;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* Pillars List (Pure Typography & Badges) */
+    .pillars-list {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 8.5px;
+      width: 100%;
+      margin-top: 4px;
     }
 
-    .card-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .card-brand {
+    .pillar-row {
       display: flex;
       align-items: center;
       gap: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 9px 14px;
+      text-align: left;
     }
 
-    .mark-icon {
-      width: 36px;
-      height: 36px;
-      object-fit: contain;
-      filter: drop-shadow(0 0 10px rgba(230, 157, 43, 0.5));
-    }
-
-    .card-brand-text {
-      font-family: 'Outfit', sans-serif;
-      font-weight: 700;
-      font-size: 14px;
-      color: #FFFFFF;
-      letter-spacing: 0.04em;
-    }
-
-    .verified-pill {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      color: #34D399;
-      font-size: 10.5px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .candidate-preview {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: rgba(8, 11, 18, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 16px;
-      padding: 12px;
-    }
-
-    .exec-avatar {
-      width: 58px;
-      height: 58px;
-      border-radius: 12px;
-      object-fit: cover;
-      border: 1.5px solid rgba(230, 157, 43, 0.6);
-    }
-
-    .exec-info {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    .exec-name {
-      font-size: 14.5px;
-      font-weight: 700;
-      color: #FFFFFF;
-    }
-
-    .exec-title {
-      font-size: 11.5px;
-      color: #94A3B8;
-    }
-
-    .match-rate {
-      font-size: 11px;
-      font-weight: 700;
+    .pillar-dot {
       color: #E69D2B;
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      font-size: 13px;
+      line-height: 1;
     }
 
-    .card-footer-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-    }
-
-    .tag-item {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 6px;
-      padding: 5px 9px;
-      font-size: 10.5px;
+    .pillar-text {
+      font-size: 12px;
       font-weight: 600;
-      color: #CBD5E1;
+      color: #E2E8F0;
+      letter-spacing: 0.01em;
     }
 
-    .floating-guarantee {
+    .floating-seal {
       position: absolute;
-      bottom: -14px;
-      right: 18px;
+      bottom: -13px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
-      border: 1px solid rgba(230, 157, 43, 0.4);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(230, 157, 43, 0.45);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
       border-radius: 9999px;
-      padding: 6px 14px;
+      padding: 5px 16px;
       font-size: 11px;
       font-weight: 700;
       color: #FFE194;
       display: flex;
       align-items: center;
       gap: 6px;
+      letter-spacing: 0.03em;
     }
   </style>
 </head>
@@ -382,7 +363,7 @@ const htmlContent = `<!DOCTYPE html>
     <div class="bg-orbital-ring"></div>
     <div class="bg-orbital-ring-2"></div>
 
-    <!-- Left Column: Branding, Headline, Stats -->
+    <!-- Left Column: Branding, Headline, Metrics -->
     <div class="left-col">
       <div>
         <div class="top-meta">
@@ -411,7 +392,7 @@ const htmlContent = `<!DOCTYPE html>
             <div class="stat-label">90-Day Retention</div>
           </div>
           <div class="stat-card">
-            <div class="stat-val">14 <span style="font-size: 16px; font-weight: 600;">Days</span></div>
+            <div class="stat-val">14 <span style="font-size: 15px; font-weight: 600;">Days</span></div>
             <div class="stat-label">Avg Time-to-Fill</div>
           </div>
         </div>
@@ -426,44 +407,47 @@ const htmlContent = `<!DOCTYPE html>
           <span>•</span> Top 2% Pre-Vetted Talent Pool
         </div>
         <div class="pill-badge">
-          <span>•</span> Direct Hire & Contract
+          <span>•</span> Direct Hire &amp; Contract
         </div>
       </div>
     </div>
 
-    <!-- Right Column: Glassmorphic Candidate & Brand Emblem Card -->
+    <!-- Right Column: Pure Brand & Favicon Showcase (ZERO HUMAN/STOCK PHOTOS) -->
     <div class="right-col">
-      <div class="card-wrap">
-        <div class="card-top">
-          <div class="card-brand">
-            <img src="${markB64}" alt="Sahara Mark" class="mark-icon" />
-            <span class="card-brand-text">SAHARA VERIFIED</span>
+      <div class="showcase-card">
+        <!-- Glowing Favicon Emblem -->
+        <div class="favicon-medallion">
+          <img src="${markB64}" alt="Sahara Staffing Favicon" class="favicon-icon" />
+        </div>
+
+        <div>
+          <div class="brand-title">Sahara Staffing Inc.</div>
+          <div class="brand-kicker">Pre-Vetted Professional Network</div>
+        </div>
+
+        <!-- Pillar Features (Typography & Badges - No Photos) -->
+        <div class="pillars-list">
+          <div class="pillar-row">
+            <span class="pillar-dot">✦</span>
+            <span class="pillar-text">C-Suite &amp; Executive Leadership</span>
           </div>
-          <div class="verified-pill">● Active</div>
-        </div>
-
-        <div class="candidate-preview">
-          <img src="${execB64}" alt="Executive Candidate" class="exec-avatar" />
-          <div class="exec-info">
-            <div class="exec-name">VP of Engineering</div>
-            <div class="exec-title">Distributed Systems & AI Architecture</div>
-            <div class="match-rate">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="#E69D2B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              99.4% Client Match
-            </div>
+          <div class="pillar-row">
+            <span class="pillar-dot">✦</span>
+            <span class="pillar-text">Principal AI &amp; Cloud Engineers</span>
+          </div>
+          <div class="pillar-row">
+            <span class="pillar-dot">✦</span>
+            <span class="pillar-text">100% 90-Day Placement Guarantee</span>
+          </div>
+          <div class="pillar-row">
+            <span class="pillar-dot">✦</span>
+            <span class="pillar-text">Rigorous 5-Stage Diligence Process</span>
           </div>
         </div>
 
-        <div class="card-footer-tags">
-          <span class="tag-item">C-Suite & VP</span>
-          <span class="tag-item">FinTech & AI</span>
-          <span class="tag-item">Full-Cycle Vetting</span>
-          <span class="tag-item">Confidential Search</span>
-        </div>
-
-        <div class="floating-guarantee">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFE194" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-          90-Day Placement Guarantee
+        <div class="floating-seal">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFE194" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          Verified Partner Network
         </div>
       </div>
     </div>
@@ -472,16 +456,16 @@ const htmlContent = `<!DOCTYPE html>
 </html>
 `;
 
-// 3. Write HTML to scratch file
+// 3. Write HTML to temporary render file
 const scratchDir = path.resolve('scratch');
 if (!fs.existsSync(scratchDir)) {
   fs.mkdirSync(scratchDir, { recursive: true });
 }
 const htmlPath = path.join(scratchDir, 'render_og.html');
 fs.writeFileSync(htmlPath, htmlContent, 'utf-8');
-console.log('Wrote HTML template to:', htmlPath);
+console.log('Wrote pure-brand OG HTML template to:', htmlPath);
 
-// 4. Run Chrome Headless Screenshot
+// 4. Capture 1200x630 Screenshot with Chrome Headless
 const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const outPngPath = path.resolve('public/og-preview.png');
 const outJpgPath = path.resolve('public/og-image.jpg');

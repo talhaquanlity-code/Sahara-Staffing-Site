@@ -18,6 +18,7 @@ dist-ssr
 # Local archives and backups
 assests/
 index.html.original
+scratch/
 
 # Editor directories and files
 .vscode/*
