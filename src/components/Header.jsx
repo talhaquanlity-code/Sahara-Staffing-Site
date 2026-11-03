@@ -10,9 +10,9 @@ export default function Header({ onNavigate, currentRoute = 'home' }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Other than homepage, navbar has fixed floating positioning.
-  // On homepage, obeys global settings.stickyNavbar toggle.
+  // On homepage, obeys global settings.stickyNavbar toggle (defaults to false / non-sticky)
   const isFixed = currentRoute !== 'home';
-  const isStickyNavbar = settings?.stickyNavbar !== false;
+  const isStickyNavbar = Boolean(settings?.stickyNavbar);
 
   const handleNav = (route, anchorFallback) => {
     if (onNavigate) {

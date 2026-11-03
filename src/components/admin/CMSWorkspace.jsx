@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check,
@@ -113,6 +114,95 @@ function EditableSection({
   );
 }
 
+// ---------------------------------------------------------------------------
+// TRUE 375PX MOBILE PREVIEW IFRAME ENGINE (React Portal & Isolated Head CSS)
+// ---------------------------------------------------------------------------
+function MobilePreviewIframe({ children }) {
+  const iframeRef = useRef(null);
+  const [mountNode, setMountNode] = useState(null);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const setupIframe = () => {
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!doc) return;
+
+      const syncStyles = () => {
+        doc.head.innerHTML = '';
+
+        // Inject base mobile reset styles & disable button navigation
+        const baseStyle = doc.createElement('style');
+        baseStyle.textContent = `
+          *, *::before, *::after {
+            box-sizing: border-box;
+          }
+          html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #0B0F17;
+            overflow-x: hidden;
+            width: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
+          /* Custom scrollbar */
+          ::-webkit-scrollbar {
+            width: 4px;
+          }
+          ::-webkit-scrollbar-track {
+            background: #0B0F17;
+          }
+          ::-webkit-scrollbar-thumb {
+            background: #E69D2B;
+            border-radius: 9999px;
+          }
+          /* Disable live preview button & link navigation */
+          button, a, [role="button"] {
+            pointer-events: none !important;
+            cursor: pointer !important;
+          }
+        `;
+        doc.head.appendChild(baseStyle);
+
+        // Copy parent styles & link stylesheets
+        const parentStyles = document.querySelectorAll('style, link[rel="stylesheet"], link[rel="preconnect"]');
+        parentStyles.forEach((el) => {
+          doc.head.appendChild(el.cloneNode(true));
+        });
+      };
+
+      syncStyles();
+
+      const observer = new MutationObserver(() => syncStyles());
+      observer.observe(document.head, { childList: true, subtree: true });
+
+      setMountNode(doc.body);
+
+      return () => observer.disconnect();
+    };
+
+    if (iframe.contentDocument?.readyState === 'complete') {
+      setupIframe();
+    } else {
+      iframe.addEventListener('load', setupIframe);
+      return () => iframe.removeEventListener('load', setupIframe);
+    }
+  }, []);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      title="Sahara Staffing Mobile Live Viewport"
+      className="w-full h-full border-0 block bg-[#0B0F17] rounded-[38px] overflow-y-auto"
+      style={{ border: 'none' }}
+    >
+      {mountNode && createPortal(children, mountNode)}
+    </iframe>
+  );
+}
+
 export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
   const {
     draftContent,
@@ -133,7 +223,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
   // =========================================================================
   const [activePageTab, setActivePageTab] = useState('home');
 
-  // Active expanded section block per page
+  // Set of currently expanded block IDs inside the drawer
+  const [expandedBlocks, setExpandedBlocks] = useState(() => new Set(['home-block-01']));
+
+  // Active focused section block (for outline highlight in preview canvas)
   const [activeBlock, setActiveBlock] = useState('home-block-01');
 
   // Right Slide-Over Block Editor Drawer state
@@ -142,16 +235,89 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
   // Preview viewport mode: 'desktop' (True 100% scale) | 'mobile' (Phone 375px)
   const [viewportMode, setViewportMode] = useState('desktop');
 
+  const isBlockExpanded = (blockId) => expandedBlocks.has(blockId);
+
+  const getBlocksForPage = (pageTab) => {
+    switch (pageTab) {
+      case 'home':
+        return [
+          'home-block-01',
+          'home-block-02',
+          'home-block-03',
+          'home-block-04',
+          'home-block-05',
+          'home-block-06',
+          'home-block-07',
+          'home-block-08',
+        ];
+      case 'about':
+        return [
+          'about-block-01',
+          'about-block-02',
+          'about-block-03',
+          'about-block-04',
+          'about-block-05',
+          'about-block-06',
+        ];
+      case 'services':
+        return [
+          'services-block-01',
+          'services-block-02',
+          'services-block-03',
+          'services-block-04',
+          'services-block-05',
+        ];
+      case 'contact':
+        return ['contact-block-01'];
+      case 'settings':
+        return ['global-settings'];
+      default:
+        return [];
+    }
+  };
+
+  const expandAllBlocks = () => {
+    const blocks = getBlocksForPage(activePageTab);
+    setExpandedBlocks(new Set(blocks));
+  };
+
+  const collapseAllBlocks = () => {
+    setExpandedBlocks(new Set());
+  };
+
+  const scrollToPreviewAnchor = (domAnchorId) => {
+    if (!domAnchorId) return;
+    setTimeout(() => {
+      const targetContainer = previewScrollRef.current;
+      const el = targetContainer?.querySelector(domAnchorId) || document.querySelector(domAnchorId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  };
+
   const openBlockDrawer = (blockId, domAnchorId) => {
     setActiveBlock(blockId);
+    setExpandedBlocks((prev) => new Set(prev).add(blockId));
     setIsDrawerOpen(true);
-    if (domAnchorId) {
-      setTimeout(() => {
-        const targetContainer = viewportMode === 'desktop' ? previewScrollRef.current : mobileChassisRef.current;
-        const el = targetContainer?.querySelector(domAnchorId) || document.querySelector(domAnchorId);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 50);
-    }
+    scrollToPreviewAnchor(domAnchorId);
+  };
+
+  const handleBlockToggle = (blockId, domAnchorId) => {
+    setExpandedBlocks((prev) => {
+      const next = new Set(prev);
+      if (next.has(blockId)) {
+        next.delete(blockId);
+      } else {
+        next.add(blockId);
+      }
+      return next;
+    });
+    setActiveBlock(blockId);
+    scrollToPreviewAnchor(domAnchorId);
+  };
+
+  const noOp = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
   };
 
   const getBlockTitle = (blockId) => {
@@ -192,42 +358,24 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
 
   // Ref to the live preview container for smooth section jumping
   const previewScrollRef = useRef(null);
-  const mobileChassisRef = useRef(null);
-
-  // ---------------------------------------------------------------------------
-  // AUTO-SCROLL TO SECTION SYNC
-  // When a section block is expanded or clicked, scroll preview to that section
-  // ---------------------------------------------------------------------------
-  const handleBlockToggle = (blockId, domAnchorId) => {
-    setActiveBlock((prev) => (prev === blockId ? null : blockId));
-    if (domAnchorId) {
-      setTimeout(() => {
-        const targetContainer = viewportMode === 'desktop' ? previewScrollRef.current : mobileChassisRef.current;
-        const el = targetContainer?.querySelector(domAnchorId) || document.querySelector(domAnchorId);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 60);
-    }
-  };
 
   // Scroll to top of preview when switching page tabs
   useEffect(() => {
     if (previewScrollRef.current) {
       previewScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    if (mobileChassisRef.current) {
-      mobileChassisRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
     // Set default active block for selected page
-    if (activePageTab === 'home') setActiveBlock('home-block-01');
-    else if (activePageTab === 'about') setActiveBlock('about-block-01');
-    else if (activePageTab === 'services') setActiveBlock('services-block-01');
-    else if (activePageTab === 'contact') setActiveBlock('contact-block-01');
+    let defaultBlock = 'home-block-01';
+    if (activePageTab === 'home') defaultBlock = 'home-block-01';
+    else if (activePageTab === 'about') defaultBlock = 'about-block-01';
+    else if (activePageTab === 'services') defaultBlock = 'services-block-01';
+    else if (activePageTab === 'contact') defaultBlock = 'contact-block-01';
     else if (activePageTab === 'settings') {
-      setActiveBlock('global-settings');
+      defaultBlock = 'global-settings';
       setIsDrawerOpen(true);
     }
+    setActiveBlock(defaultBlock);
+    setExpandedBlocks(new Set([defaultBlock]));
   }, [activePageTab]);
 
   // ---------------------------------------------------------------------------
@@ -470,6 +618,253 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
     );
   };
 
+  // =========================================================================
+  // LIVE SITE PREVIEW CANVAS CONTENT (EXACT 1:1 REPLICA OF THE REAL SITE)
+  // Replicates exact architectural Bento Canvas, warm stone #EBE7DE gutter,
+  // detached rounded cards, and non-interactive preview action buttons.
+  // =========================================================================
+  const renderPreviewContent = () => (
+    <div className="preview-site-content w-full relative min-h-screen bg-[#EBE7DE] text-[#0B0F17] selection:bg-[#E69D2B] selection:text-[#0B0F17]">
+      {/* Scoped CSS rule: Disables link navigation and button hijacking in live preview */}
+      <style>{`
+        .preview-site-content button,
+        .preview-site-content a,
+        .preview-site-content [role="button"] {
+          pointer-events: none !important;
+          cursor: pointer !important;
+        }
+      `}</style>
+
+      {/* ===================================================================== */}
+      {/* 1. HOMEPAGE VIEWPORT (EXACT MATCH OF REAL SITE DOM & ARCHITECTURE)   */}
+      {/* ===================================================================== */}
+      {(activePageTab === 'home' || activePageTab === 'settings') && (
+        <>
+          {/* Block 01: Hero Section (Embeds 3-Part Glassmorphic Header) */}
+          <EditableSection
+            blockId="home-block-01"
+            blockNumber="01"
+            blockTitle="Hero Section"
+            activeBlock={activeBlock}
+            isDrawerOpen={isDrawerOpen}
+            onSelectBlock={openBlockDrawer}
+          >
+            <div id="hero-section">
+              <Hero
+                onNavigate={noOp}
+                onNavigateContact={noOp}
+                onNavigateServices={noOp}
+                currentRoute="home"
+              />
+            </div>
+          </EditableSection>
+
+          {/* Architectural Bento Canvas (Warm Stone Gutter with Rounded Cards) */}
+          <main className="relative z-10 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-3.5 sm:gap-5 lg:gap-6 bg-[#EBE7DE]">
+            {/* Block 02: Partners & Metrics Strip (White Detached Rounded Card) */}
+            <EditableSection
+              blockId="home-block-02"
+              blockNumber="02"
+              blockTitle="Partners & Metrics Strip"
+              activeBlock={activeBlock}
+              isDrawerOpen={isDrawerOpen}
+              onSelectBlock={openBlockDrawer}
+            >
+              <div id="metrics-section">
+                <section className="rounded-2xl sm:rounded-[20px] overflow-hidden bg-white border border-[#DDD7CC] shadow-[0_4px_24px_rgba(11,15,23,0.03)]">
+                  <SocialProofMarquee />
+                </section>
+              </div>
+            </EditableSection>
+
+            {/* Block 03: Bento Solutions Grid (Warm Cream Detached Rounded Card) */}
+            <EditableSection
+              blockId="home-block-03"
+              blockNumber="03"
+              blockTitle="Bento Solutions Grid"
+              activeBlock={activeBlock}
+              isDrawerOpen={isDrawerOpen}
+              onSelectBlock={openBlockDrawer}
+            >
+              <div id="capital-section">
+                <section className="rounded-2xl sm:rounded-[20px] overflow-hidden bg-[#FAF9F6] border border-[#DDD7CC] shadow-[0_4px_24px_rgba(11,15,23,0.03)]">
+                  <BentoGrowthCapital onNavigateService={noOp} />
+                </section>
+              </div>
+            </EditableSection>
+          </main>
+
+          {/* Block 04: Kinetic Vetting Pipeline (Full-Width Cinematic Stage) */}
+          <EditableSection
+            blockId="home-block-04"
+            blockNumber="04"
+            blockTitle="Kinetic Vetting Pipeline"
+            activeBlock={activeBlock}
+            isDrawerOpen={isDrawerOpen}
+            onSelectBlock={openBlockDrawer}
+          >
+            <div id="process-story">
+              <VettingProcess
+                onNavigateContact={noOp}
+                onNavigateServices={noOp}
+              />
+            </div>
+          </EditableSection>
+
+          {/* Architectural Bento Canvas — Lower Block */}
+          <main className="relative z-10 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-3.5 sm:gap-5 lg:gap-6 bg-[#EBE7DE]">
+            {/* Block 05: Executive Hiring Estimator */}
+            <EditableSection
+              blockId="home-block-05"
+              blockNumber="05"
+              blockTitle="Executive Hiring Estimator"
+              activeBlock={activeBlock}
+              isDrawerOpen={isDrawerOpen}
+              onSelectBlock={openBlockDrawer}
+            >
+              <div id="staffing-momentum">
+                <section className="rounded-2xl sm:rounded-[20px] overflow-hidden bg-white border border-[#DDD7CC] shadow-[0_4px_24px_rgba(11,15,23,0.03)]">
+                  <Calculator
+                    onNavigateContact={noOp}
+                    onProceedToContact={noOp}
+                  />
+                </section>
+              </div>
+            </EditableSection>
+
+            {/* Block 06: Testimonials Carousel */}
+            <EditableSection
+              blockId="home-block-06"
+              blockNumber="06"
+              blockTitle="Testimonials Carousel"
+              activeBlock={activeBlock}
+              isDrawerOpen={isDrawerOpen}
+              onSelectBlock={openBlockDrawer}
+            >
+              <div id="testimonials-section">
+                <section className="rounded-2xl sm:rounded-[20px] overflow-hidden bg-[#FAF9F6] border border-[#DDD7CC] shadow-[0_4px_24px_rgba(11,15,23,0.03)]">
+                  <Testimonials />
+                </section>
+              </div>
+            </EditableSection>
+
+            {/* Block 07: Frequently Asked Questions */}
+            <EditableSection
+              blockId="home-block-07"
+              blockNumber="07"
+              blockTitle="Frequently Asked Questions"
+              activeBlock={activeBlock}
+              isDrawerOpen={isDrawerOpen}
+              onSelectBlock={openBlockDrawer}
+            >
+              <div id="faq-section">
+                <section className="rounded-2xl sm:rounded-[20px] overflow-hidden bg-white border border-[#DDD7CC] shadow-[0_4px_24px_rgba(11,15,23,0.03)]">
+                  <FAQ />
+                </section>
+              </div>
+            </EditableSection>
+
+            {/* Block 08: Bottom CTA & Global Footer */}
+            <EditableSection
+              blockId="home-block-08"
+              blockNumber="08"
+              blockTitle="Bottom CTA & Footer"
+              activeBlock={activeBlock}
+              isDrawerOpen={isDrawerOpen}
+              onSelectBlock={openBlockDrawer}
+            >
+              <div id="footer-section">
+                <section className="relative rounded-2xl sm:rounded-[20px] overflow-hidden bg-gradient-to-b from-white via-white to-[#FCEFD2] border border-[#DDD7CC] shadow-[0_4px_24px_rgba(11,15,23,0.03)] mb-4 sm:mb-6">
+                  <div className="animate-breathe absolute bottom-0 inset-x-0 h-[720px] bg-gradient-to-t from-[#E69D2B]/30 via-[#E69D2B]/10 to-transparent pointer-events-none" />
+                  <SpeakToExperts onNavigateContact={noOp} />
+                </section>
+                <Footer onNavigate={noOp} />
+              </div>
+            </EditableSection>
+          </main>
+        </>
+      )}
+
+      {/* ===================================================================== */}
+      {/* 2. ABOUT PAGE VIEWPORT                                                 */}
+      {/* ===================================================================== */}
+      {activePageTab === 'about' && (
+        <div className="min-h-screen bg-[#0B0F17] flex flex-col justify-between">
+          <Header onNavigate={noOp} currentRoute="about" />
+          <EditableSection
+            blockId="about-block-01"
+            blockNumber="01"
+            blockTitle="About Narrative & Benchmarks"
+            activeBlock={activeBlock}
+            isDrawerOpen={isDrawerOpen}
+            onSelectBlock={openBlockDrawer}
+          >
+            <div id="about-hero">
+              <AboutPage
+                onNavigateContact={noOp}
+                onNavigateServices={noOp}
+              />
+            </div>
+          </EditableSection>
+          <div className="px-3 sm:px-5 lg:px-7 py-4 sm:py-6 bg-[#EBE7DE]">
+            <Footer onNavigate={noOp} />
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* 3. SERVICES PAGE VIEWPORT                                              */}
+      {/* ===================================================================== */}
+      {activePageTab === 'services' && (
+        <div className="min-h-screen bg-[#F8F6F1] flex flex-col justify-between">
+          <Header onNavigate={noOp} currentRoute="services" />
+          <EditableSection
+            blockId="services-block-01"
+            blockNumber="01"
+            blockTitle="Services Capabilities & Practice"
+            activeBlock={activeBlock}
+            isDrawerOpen={isDrawerOpen}
+            onSelectBlock={openBlockDrawer}
+          >
+            <div id="services-hero">
+              <ServicesPage
+                onNavigateContact={noOp}
+                onNavigate={noOp}
+              />
+            </div>
+          </EditableSection>
+          <div className="px-3 sm:px-5 lg:px-7 py-4 sm:py-6 bg-[#EBE7DE]">
+            <Footer onNavigate={noOp} />
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* 4. CONTACT PAGE VIEWPORT                                               */}
+      {/* ===================================================================== */}
+      {activePageTab === 'contact' && (
+        <div className="min-h-screen bg-[#F8F6F1] flex flex-col justify-between">
+          <Header onNavigate={noOp} currentRoute="contact" />
+          <EditableSection
+            blockId="contact-block-01"
+            blockNumber="01"
+            blockTitle="Contact Form & Intake Portal"
+            activeBlock={activeBlock}
+            isDrawerOpen={isDrawerOpen}
+            onSelectBlock={openBlockDrawer}
+          >
+            <div id="contact-workspace">
+              <ContactPage />
+            </div>
+          </EditableSection>
+          <div className="px-3 sm:px-5 lg:px-7 py-4 sm:py-6 bg-[#EBE7DE]">
+            <Footer onNavigate={noOp} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="relative w-full h-full flex flex-col min-h-screen bg-[#0B0F17] overflow-hidden">
       {/* ===================================================================== */}
@@ -639,252 +1034,41 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
       <div
         ref={previewScrollRef}
         data-lenis-prevent
-        className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain scroll-smooth custom-scrollbar bg-[#0B0F17] relative pt-4"
+        className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain scroll-smooth custom-scrollbar bg-[#0B0F17] relative pt-2"
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
       >
         <CMSPreviewProvider content={draftContent} settings={settings} key={previewKey}>
           {viewportMode === 'desktop' ? (
-            /* DESKTOP MODE (TRUE 1:1 REAL DIMENSIONS, 100% WIDTH) */
-            <div className="w-full min-h-full bg-[#0B0F17] text-white">
-              {(activePageTab === 'home' || activePageTab === 'settings') && (
-                <>
-                  <EditableSection
-                    blockId="home-block-01"
-                    blockNumber="01"
-                    blockTitle="Hero Section"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="hero-section">
-                      <Hero />
-                    </div>
-                  </EditableSection>
-
-                  <EditableSection
-                    blockId="home-block-02"
-                    blockNumber="02"
-                    blockTitle="Partners & Metrics Strip"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="metrics-section">
-                      <SocialProofMarquee />
-                    </div>
-                  </EditableSection>
-
-                  <EditableSection
-                    blockId="home-block-03"
-                    blockNumber="03"
-                    blockTitle="Bento Solutions Grid"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="capital-section">
-                      <BentoGrowthCapital />
-                    </div>
-                  </EditableSection>
-
-                  <EditableSection
-                    blockId="home-block-04"
-                    blockNumber="04"
-                    blockTitle="Kinetic Vetting Pipeline"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="process-story">
-                      <VettingProcess />
-                    </div>
-                  </EditableSection>
-
-                  <EditableSection
-                    blockId="home-block-05"
-                    blockNumber="05"
-                    blockTitle="Executive Hiring Estimator"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="staffing-momentum">
-                      <Calculator />
-                    </div>
-                  </EditableSection>
-
-                  <EditableSection
-                    blockId="home-block-06"
-                    blockNumber="06"
-                    blockTitle="Testimonials Carousel"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="testimonials-section">
-                      <Testimonials />
-                    </div>
-                  </EditableSection>
-
-                  <EditableSection
-                    blockId="home-block-07"
-                    blockNumber="07"
-                    blockTitle="Frequently Asked Questions"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="faq-section">
-                      <FAQ />
-                    </div>
-                  </EditableSection>
-
-                  <EditableSection
-                    blockId="home-block-08"
-                    blockNumber="08"
-                    blockTitle="Bottom CTA & Footer"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="footer-section">
-                      <SpeakToExperts />
-                      <Footer />
-                    </div>
-                  </EditableSection>
-                </>
-              )}
-
-              {/* ABOUT PAGE */}
-              {activePageTab === 'about' && (
-                <div className="min-h-full bg-[#0B0F17]">
-                  <Header currentRoute="about" />
-                  <EditableSection
-                    blockId="about-block-01"
-                    blockNumber="01"
-                    blockTitle="About Narrative & Benchmarks"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="about-hero">
-                      <AboutPage />
-                    </div>
-                  </EditableSection>
-                  <Footer />
-                </div>
-              )}
-
-              {/* SERVICES PAGE */}
-              {activePageTab === 'services' && (
-                <div className="min-h-full bg-[#F8F6F1] text-[#0B0F17]">
-                  <Header currentRoute="services" />
-                  <EditableSection
-                    blockId="services-block-01"
-                    blockNumber="01"
-                    blockTitle="Services Capabilities & Practice"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="services-hero">
-                      <ServicesPage />
-                    </div>
-                  </EditableSection>
-                  <Footer />
-                </div>
-              )}
-
-              {/* CONTACT PAGE */}
-              {activePageTab === 'contact' && (
-                <div className="min-h-full bg-[#F8F6F1] text-[#0B0F17]">
-                  <Header currentRoute="contact" />
-                  <EditableSection
-                    blockId="contact-block-01"
-                    blockNumber="01"
-                    blockTitle="Contact Form & Intake Portal"
-                    activeBlock={activeBlock}
-                    isDrawerOpen={isDrawerOpen}
-                    onSelectBlock={openBlockDrawer}
-                  >
-                    <div id="contact-workspace">
-                      <ContactPage />
-                    </div>
-                  </EditableSection>
-                  <Footer />
-                </div>
-              )}
+            /* DESKTOP MODE (TRUE 1:1 REAL DIMENSIONS, 100% NATURAL BROWSER SCROLL) */
+            <div className="w-full min-h-full">
+              {renderPreviewContent()}
             </div>
           ) : (
-            /* MOBILE PHONE CHASSIS (CENTERED 375PX) */
-            <div className="py-8 px-4 flex justify-center items-start min-h-full bg-black/40">
+            /* MOBILE PHONE CHASSIS (AUTHENTIC 375PX IFRAME VIEWPORT) */
+            <div className="py-8 px-4 flex justify-center items-start min-h-full bg-black/50">
               <div
-                ref={mobileChassisRef}
-                data-lenis-prevent
-                className="w-[375px] h-[780px] max-h-[calc(100vh-140px)] mx-auto rounded-[40px] border-[6px] border-[#1E293B] overflow-y-auto overscroll-contain shadow-2xl bg-[#0B0F17] custom-scrollbar text-white relative flex flex-col"
-                style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
+                className="w-[390px] h-[812px] max-h-[calc(100vh-140px)] mx-auto rounded-[48px] border-[10px] border-[#1E293B] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.1)] bg-[#0B0F17] relative flex flex-col overflow-hidden"
               >
-                {/* Phone Speaker Notch */}
-                <div className="sticky top-0 z-30 w-full h-6 bg-[#0B0F17]/95 backdrop-blur-sm flex justify-center items-center shrink-0 border-b border-white/5">
-                  <div className="w-20 h-3 bg-[#1E293B] rounded-full" />
+                {/* Dynamic Island Notch */}
+                <div className="absolute top-2.5 inset-x-0 z-30 flex justify-center pointer-events-none">
+                  <div className="w-24 h-4 bg-[#0B0F17] border border-white/10 rounded-full flex items-center justify-center gap-1.5 shadow-md">
+                    <div className="w-2 h-2 rounded-full bg-[#1E293B]" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#131926] border border-white/5" />
+                  </div>
                 </div>
 
-                <div className="w-full flex-1">
-                  {(activePageTab === 'home' || activePageTab === 'settings') && (
-                    <>
-                      <EditableSection blockId="home-block-01" blockNumber="01" blockTitle="Hero Section" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <div id="hero-section"><Hero /></div>
-                      </EditableSection>
-                      <EditableSection blockId="home-block-02" blockNumber="02" blockTitle="Partners & Metrics Strip" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <div id="metrics-section"><SocialProofMarquee /></div>
-                      </EditableSection>
-                      <EditableSection blockId="home-block-03" blockNumber="03" blockTitle="Bento Solutions Grid" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <div id="capital-section"><BentoGrowthCapital /></div>
-                      </EditableSection>
-                      <EditableSection blockId="home-block-04" blockNumber="04" blockTitle="Kinetic Vetting Pipeline" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <div id="process-story"><VettingProcess /></div>
-                      </EditableSection>
-                      <EditableSection blockId="home-block-05" blockNumber="05" blockTitle="Executive Hiring Estimator" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <div id="staffing-momentum"><Calculator /></div>
-                      </EditableSection>
-                      <EditableSection blockId="home-block-06" blockNumber="06" blockTitle="Testimonials Carousel" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <div id="testimonials-section"><Testimonials /></div>
-                      </EditableSection>
-                      <EditableSection blockId="home-block-07" blockNumber="07" blockTitle="Frequently Asked Questions" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <div id="faq-section"><FAQ /></div>
-                      </EditableSection>
-                      <EditableSection blockId="home-block-08" blockNumber="08" blockTitle="Bottom CTA & Footer" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <div id="footer-section"><SpeakToExperts /><Footer /></div>
-                      </EditableSection>
-                    </>
-                  )}
-                  {activePageTab === 'about' && (
-                    <div>
-                      <Header currentRoute="about" />
-                      <EditableSection blockId="about-block-01" blockNumber="01" blockTitle="About Narrative" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <AboutPage />
-                      </EditableSection>
-                      <Footer />
-                    </div>
-                  )}
-                  {activePageTab === 'services' && (
-                    <div className="bg-[#F8F6F1] text-[#0B0F17]">
-                      <Header currentRoute="services" />
-                      <EditableSection blockId="services-block-01" blockNumber="01" blockTitle="Services Practice" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <ServicesPage />
-                      </EditableSection>
-                      <Footer />
-                    </div>
-                  )}
-                  {activePageTab === 'contact' && (
-                    <div className="bg-[#F8F6F1] text-[#0B0F17]">
-                      <Header currentRoute="contact" />
-                      <EditableSection blockId="contact-block-01" blockNumber="01" blockTitle="Contact Intake" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
-                        <ContactPage />
-                      </EditableSection>
-                      <Footer />
-                    </div>
-                  )}
+                {/* Mobile Viewport Iframe Portal */}
+                <div className="w-full h-full flex-1 pt-1 pb-1">
+                  <MobilePreviewIframe>
+                    <CMSPreviewProvider content={draftContent} settings={settings}>
+                      {renderPreviewContent()}
+                    </CMSPreviewProvider>
+                  </MobilePreviewIframe>
+                </div>
+
+                {/* Home Indicator Bar */}
+                <div className="absolute bottom-1.5 inset-x-0 z-30 flex justify-center pointer-events-none">
+                  <div className="w-32 h-1 bg-white/30 rounded-full" />
                 </div>
               </div>
             </div>
@@ -896,7 +1080,7 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
       {/* 3. RIGHT SLIDE-OVER BLOCK EDITOR DRAWER (<AnimatePresence>)           */}
       {/* ===================================================================== */}
       <AnimatePresence>
-        {isDrawerOpen && activeBlock && (
+        {isDrawerOpen && (
           <>
             {/* Backdrop */}
             <motion.div
@@ -913,6 +1097,7 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              onClick={(e) => e.stopPropagation()}
               data-lenis-prevent
               className="w-[460px] max-w-[95vw] h-full fixed right-0 top-0 z-50 bg-[#0B0F17]/95 backdrop-blur-2xl border-l border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.85)] flex flex-col"
             >
@@ -924,20 +1109,38 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                     <span className="text-[10px] font-mono text-[#E69D2B] uppercase tracking-wider font-semibold block">
                       Section Editor Drawer
                     </span>
-                    <h2 className="text-sm font-bold text-white font-sans truncate max-w-[320px]">
+                    <h2 className="text-sm font-bold text-white font-sans truncate max-w-[180px] sm:max-w-[240px]">
                       {getBlockTitle(activeBlock)}
                     </h2>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsDrawerOpen(false)}
-                  className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-[#94A3B8] hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-                  title="Close Drawer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={expandAllBlocks}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[10px] text-[#94A3B8] hover:text-white transition-colors cursor-pointer font-mono"
+                    title="Expand all section blocks"
+                  >
+                    Expand All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={collapseAllBlocks}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[10px] text-[#94A3B8] hover:text-white transition-colors cursor-pointer font-mono"
+                    title="Collapse all section blocks"
+                  >
+                    Collapse All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-[#94A3B8] hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                    title="Close Drawer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Drawer Quick Section Switcher */}
@@ -947,7 +1150,16 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                 </label>
                 <select
                   value={activeBlock}
-                  onChange={(e) => setActiveBlock(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setActiveBlock(val);
+                    setExpandedBlocks((prev) => new Set(prev).add(val));
+                    if (val.startsWith('home-')) setActivePageTab('home');
+                    else if (val.startsWith('about-')) setActivePageTab('about');
+                    else if (val.startsWith('services-')) setActivePageTab('services');
+                    else if (val.startsWith('contact-')) setActivePageTab('contact');
+                    else if (val === 'global-settings') setActivePageTab('settings');
+                  }}
                   className="w-full px-3 py-1.5 rounded-lg bg-[#131926] border border-white/10 text-white text-xs font-sans focus:border-[#E69D2B] focus:outline-none cursor-pointer"
                 >
                   <optgroup label="Home Page">
@@ -1013,14 +1225,14 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       </p>
                     </div>
                   </div>
-                  {activeBlock === 'home-block-01' ? (
+                  {isBlockExpanded('home-block-01') ? (
                     <ChevronUp className="w-4 h-4 text-[#94A3B8]" />
                   ) : (
                     <ChevronDown className="w-4 h-4 text-[#94A3B8]" />
                   )}
                 </button>
 
-                {activeBlock === 'home-block-01' && (
+                {isBlockExpanded('home-block-01') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-4 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 font-mono">
@@ -1148,14 +1360,14 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       </p>
                     </div>
                   </div>
-                  {activeBlock === 'home-block-02' ? (
+                  {isBlockExpanded('home-block-02') ? (
                     <ChevronUp className="w-4 h-4 text-[#94A3B8]" />
                   ) : (
                     <ChevronDown className="w-4 h-4 text-[#94A3B8]" />
                   )}
                 </button>
 
-                {activeBlock === 'home-block-02' && (
+                {isBlockExpanded('home-block-02') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 font-mono">
@@ -1233,14 +1445,14 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       </p>
                     </div>
                   </div>
-                  {activeBlock === 'home-block-03' ? (
+                  {isBlockExpanded('home-block-03') ? (
                     <ChevronUp className="w-4 h-4 text-[#94A3B8]" />
                   ) : (
                     <ChevronDown className="w-4 h-4 text-[#94A3B8]" />
                   )}
                 </button>
 
-                {activeBlock === 'home-block-03' && (
+                {isBlockExpanded('home-block-03') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-4 text-xs">
                     {(draftContent.home?.bento || draftContent.services || []).map((card, idx) => (
                       <div key={card.id || idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-3">
@@ -1346,14 +1558,14 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       </p>
                     </div>
                   </div>
-                  {activeBlock === 'home-block-04' ? (
+                  {isBlockExpanded('home-block-04') ? (
                     <ChevronUp className="w-4 h-4 text-[#94A3B8]" />
                   ) : (
                     <ChevronDown className="w-4 h-4 text-[#94A3B8]" />
                   )}
                 </button>
 
-                {activeBlock === 'home-block-04' && (
+                {isBlockExpanded('home-block-04') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-4 text-xs">
                     {(draftContent.home?.vetting || draftContent.vettingStages || []).map((stage, idx) => (
                       <div key={idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-2.5">
@@ -1427,14 +1639,14 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       </p>
                     </div>
                   </div>
-                  {activeBlock === 'home-block-05' ? (
+                  {isBlockExpanded('home-block-05') ? (
                     <ChevronUp className="w-4 h-4 text-[#94A3B8]" />
                   ) : (
                     <ChevronDown className="w-4 h-4 text-[#94A3B8]" />
                   )}
                 </button>
 
-                {activeBlock === 'home-block-05' && (
+                {isBlockExpanded('home-block-05') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 font-mono">
@@ -1548,14 +1760,14 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       </p>
                     </div>
                   </div>
-                  {activeBlock === 'home-block-06' ? (
+                  {isBlockExpanded('home-block-06') ? (
                     <ChevronUp className="w-4 h-4 text-[#94A3B8]" />
                   ) : (
                     <ChevronDown className="w-4 h-4 text-[#94A3B8]" />
                   )}
                 </button>
 
-                {activeBlock === 'home-block-06' && (
+                {isBlockExpanded('home-block-06') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-4 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-[10.5px] font-bold text-[#E69D2B] uppercase tracking-wider font-mono">
@@ -1680,14 +1892,14 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       </p>
                     </div>
                   </div>
-                  {activeBlock === 'home-block-07' ? (
+                  {isBlockExpanded('home-block-07') ? (
                     <ChevronUp className="w-4 h-4 text-[#94A3B8]" />
                   ) : (
                     <ChevronDown className="w-4 h-4 text-[#94A3B8]" />
                   )}
                 </button>
 
-                {activeBlock === 'home-block-07' && (
+                {isBlockExpanded('home-block-07') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-4 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-[10.5px] font-bold text-[#E69D2B] uppercase tracking-wider font-mono">
@@ -1775,14 +1987,14 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       </p>
                     </div>
                   </div>
-                  {activeBlock === 'home-block-08' ? (
+                  {isBlockExpanded('home-block-08') ? (
                     <ChevronUp className="w-4 h-4 text-[#94A3B8]" />
                   ) : (
                     <ChevronDown className="w-4 h-4 text-[#94A3B8]" />
                   )}
                 </button>
 
-                {activeBlock === 'home-block-08' && (
+                {isBlockExpanded('home-block-08') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 font-mono">
@@ -1878,10 +2090,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">Kicker, Headline, Narrative, and CTAs</p>
                     </div>
                   </div>
-                  {activeBlock === 'about-block-01' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('about-block-01') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'about-block-01' && (
+                {isBlockExpanded('about-block-01') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase mb-1 font-mono">Kicker Eyebrow</label>
@@ -1953,10 +2165,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">Our Principles: People First, Clarity, Connections</p>
                     </div>
                   </div>
-                  {activeBlock === 'about-block-02' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('about-block-02') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'about-block-02' && (
+                {isBlockExpanded('about-block-02') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     {(draftContent.about?.benchmarks || []).map((b, idx) => (
                       <div key={idx} className="p-3 rounded-lg bg-[#131926] border border-[#1E293B] space-y-2">
@@ -2005,10 +2217,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">Story chapters with full-resolution replaceable imagery</p>
                     </div>
                   </div>
-                  {activeBlock === 'about-block-03' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('about-block-03') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'about-block-03' && (
+                {isBlockExpanded('about-block-03') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     {(draftContent.about?.chapters || []).map((ch, idx) => (
                       <div key={idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-2.5">
@@ -2068,10 +2280,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">Executive profiles and headshot uploaders</p>
                     </div>
                   </div>
-                  {activeBlock === 'about-block-04' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('about-block-04') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'about-block-04' && (
+                {isBlockExpanded('about-block-04') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     {(draftContent.about?.leadership || []).map((lead, idx) => (
                       <div key={idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-2.5">
@@ -2139,10 +2351,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">Enterprise proof points and placement volume</p>
                     </div>
                   </div>
-                  {activeBlock === 'about-block-05' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('about-block-05') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'about-block-05' && (
+                {isBlockExpanded('about-block-05') && (
                   <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 gap-3 text-xs">
                     {(draftContent.about?.stats || []).map((s, idx) => (
                       <div key={idx} className="p-3 rounded-lg bg-[#131926] border border-[#1E293B] space-y-1">
@@ -2188,10 +2400,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">About Page closing banner and actions</p>
                     </div>
                   </div>
-                  {activeBlock === 'about-block-06' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('about-block-06') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'about-block-06' && (
+                {isBlockExpanded('about-block-06') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase mb-1 font-mono">Closing Headline</label>
@@ -2252,10 +2464,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">Panoramic Banner, Kicker, and Headline</p>
                     </div>
                   </div>
-                  {activeBlock === 'services-block-01' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('services-block-01') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'services-block-01' && (
+                {isBlockExpanded('services-block-01') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase mb-1 font-mono">Kicker Eyebrow</label>
@@ -2301,10 +2513,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">Permanent, Contract, Retained, and RPO</p>
                     </div>
                   </div>
-                  {activeBlock === 'services-block-02' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('services-block-02') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'services-block-02' && (
+                {isBlockExpanded('services-block-02') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     {(draftContent.servicesPage?.capabilities || []).map((cap, idx) => (
                       <div key={idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-2.5">
@@ -2351,10 +2563,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">Assurance Kicker, Headline, and Criteria</p>
                     </div>
                   </div>
-                  {activeBlock === 'services-block-03' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('services-block-03') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'services-block-03' && (
+                {isBlockExpanded('services-block-03') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     <input
                       type="text"
@@ -2382,10 +2594,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">Retained, Contingency, Fractional, and RPO</p>
                     </div>
                   </div>
-                  {activeBlock === 'services-block-04' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('services-block-04') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'services-block-04' && (
+                {isBlockExpanded('services-block-04') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     {(draftContent.servicesPage?.engagementModels || []).map((m, idx) => (
                       <div key={idx} className="p-3 rounded-lg bg-[#131926] border border-[#1E293B]">
@@ -2431,10 +2643,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">90-Day Unconditional Replacement Terms</p>
                     </div>
                   </div>
-                  {activeBlock === 'services-block-05' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('services-block-05') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'services-block-05' && (
+                {isBlockExpanded('services-block-05') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     <input
                       type="text"
@@ -2476,10 +2688,10 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                       <p className="text-[11px] text-[#64748B]">Intake routing, Direct Contact info, and SLAs</p>
                     </div>
                   </div>
-                  {activeBlock === 'contact-block-01' ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                  {isBlockExpanded('contact-block-01') ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
                 </button>
 
-                {activeBlock === 'contact-block-01' && (
+                {isBlockExpanded('contact-block-01') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase mb-1 font-mono">Headline</label>
@@ -2589,6 +2801,33 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                   title="Toggle back to top button"
                 >
                   {settings.enableBackToTop ? (
+                    <ToggleRight className="w-7 h-7 text-emerald-400" />
+                  ) : (
+                    <ToggleLeft className="w-7 h-7 text-[#64748B]" />
+                  )}
+                </button>
+              </div>
+
+              {/* Utility Toggle 3: Sticky Navbar */}
+              <div className="p-4 rounded-xl bg-[#0B0F17]/80 flex items-start justify-between gap-4 transition-all">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[#E69D2B]" />
+                    <span className="text-xs font-bold text-white font-sans">
+                      Sticky Navigation Bar
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                    Fixes the glassmorphic navbar to the top during scroll. Non-sticky by default.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ stickyNavbar: !settings.stickyNavbar })}
+                  className="cursor-pointer text-[#E69D2B] mt-1 shrink-0 transition-transform active:scale-95"
+                  title="Toggle sticky navigation bar"
+                >
+                  {settings.stickyNavbar ? (
                     <ToggleRight className="w-7 h-7 text-emerald-400" />
                   ) : (
                     <ToggleLeft className="w-7 h-7 text-[#64748B]" />

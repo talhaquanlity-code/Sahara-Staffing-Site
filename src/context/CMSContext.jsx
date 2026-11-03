@@ -3,7 +3,7 @@ import { faqData as initialFaqData } from '../data/faqData';
 import { testimonialsData as initialTestimonialsData } from '../data/testimonialsData';
 
 const CMS_STORAGE_KEY = 'sahara_cms_content_v2';
-const SETTINGS_STORAGE_KEY = 'sahara_brand_settings_v2';
+const SETTINGS_STORAGE_KEY = 'sahara_brand_settings_v3';
 
 // Comprehensive baseline content hierarchy for all pages & sections
 export const INITIAL_CMS_CONTENT = {
@@ -521,10 +521,10 @@ export const INITIAL_CMS_CONTENT = {
 
 // Global Site Utilities & Brand Settings
 export const INITIAL_SETTINGS = {
-  stickyNavbar: true,
+  stickyNavbar: false,
   enableBackToTop: true,
   backToTopIcon: 'arrow', // 'arrow' | 'sparkle'
-  enableCustomCursor: true,
+  enableCustomCursor: false,
   primaryAccent: '#E69D2B',
   recipientEmail: 'talhaquanlity@gmail.com',
   companyName: 'Sahara Staffing Inc.',
