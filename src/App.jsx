@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UIProvider } from './context/UIContext';
 import { ScrollProvider } from './context/ScrollContext';
-import { CMSProvider } from './context/CMSContext';
+import { CMSProvider, useCMS } from './context/CMSContext';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import SocialProofMarquee from './components/SocialProofMarquee';
@@ -22,7 +22,48 @@ import ServicesPage from './pages/ServicesPage';
 import ContactPage from './pages/ContactPage';
 import AdminPage from './pages/AdminPage';
 
+function LuxuryCursor() {
+  const [pos, setPos] = useState({ x: -100, y: -100 });
+  const [hovered, setHovered] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setPos({ x: e.clientX, y: e.clientY });
+      setVisible(true);
+      const target = e.target;
+      const isInteractive = target?.closest('button, a, input, textarea, select, [role="button"]');
+      setHovered(!!isInteractive);
+    };
+    const handleMouseLeave = () => setVisible(false);
+
+    window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className="fixed pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 ease-out"
+      style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
+    >
+      <div
+        className={`rounded-full border border-[#E69D2B] bg-[#E69D2B]/15 transition-all duration-200 ${
+          hovered ? 'w-10 h-10 scale-125 bg-[#E69D2B]/30' : 'w-6 h-6'
+        }`}
+      />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#E69D2B]" />
+    </div>
+  );
+}
+
 function AppContent() {
+  const { settings } = useCMS();
   const [currentRoute, setCurrentRoute] = useState('home'); // 'home' | 'services' | 'about' | 'contact' | 'admin'
   const [contactPrefill, setContactPrefill] = useState(null);
 
@@ -136,6 +177,7 @@ function AppContent() {
       <Modal />
       <Toast />
       <ScrollProgressButton />
+      {settings?.enableCustomCursor && <LuxuryCursor />}
 
       {/* ========================================================================= */}
       {/* ROUTE 1: HOMEPAGE                                                         */}

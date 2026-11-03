@@ -2,13 +2,20 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { useScroll } from '../context/ScrollContext';
+import { useCMS } from '../context/CMSContext';
 import saharaMarkImg from '../assets/sahara-mark.png';
 
 export default function ScrollProgressButton() {
   const { lenis, scrollTo } = useScroll();
+  const { settings } = useCMS();
   const circleRef = useRef(null);
   const buttonRef = useRef(null);
   const markRef = useRef(null);
+
+  // If back to top is disabled in global CMS settings, hide completely
+  if (settings?.enableBackToTop === false) {
+    return null;
+  }
 
   // Visibility (after hero) and Page Bottom (transition to back-to-top arrow)
   const [isVisible, setIsVisible] = useState(false);

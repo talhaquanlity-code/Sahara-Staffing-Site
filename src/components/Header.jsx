@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { Menu, X, User } from 'lucide-react';
 import { useUI } from '../context/UIContext';
+import { useCMS } from '../context/CMSContext';
 import logoImg from '../assets/sahara-logo.png';
 
 export default function Header({ onNavigate, currentRoute = 'home' }) {
   const { openModal } = useUI();
+  const { settings } = useCMS();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Other than homepage, navbar has fixed floating positioning
+  // Other than homepage, navbar has fixed floating positioning.
+  // On homepage, obeys global settings.stickyNavbar toggle.
   const isFixed = currentRoute !== 'home';
+  const isStickyNavbar = settings?.stickyNavbar !== false;
 
   const handleNav = (route, anchorFallback) => {
     if (onNavigate) {
@@ -27,6 +31,8 @@ export default function Header({ onNavigate, currentRoute = 'home' }) {
       className={`z-50 w-full transition-all duration-300 ${
         isFixed
           ? 'fixed top-0 inset-x-0 pt-4 sm:pt-6 pointer-events-auto'
+          : isStickyNavbar
+          ? 'sticky top-0 inset-x-0 pt-4 pb-2 z-50 backdrop-blur-md bg-[#0B0F17]/40 max-w-[1400px] mx-auto px-4 sm:px-8'
           : 'relative max-w-[1400px] mx-auto px-4 sm:px-8 pt-6'
       }`}
     >
