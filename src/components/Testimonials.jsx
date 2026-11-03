@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
+import { useCMS } from '../context/CMSContext';
 
 const testimonials = [
   {
@@ -53,6 +54,19 @@ const testimonials = [
 ];
 
 export default function Testimonials() {
+  const { content } = useCMS();
+  const cmsTestimonials = content?.testimonials;
+
+  const displayTestimonials = (Array.isArray(cmsTestimonials) && cmsTestimonials.length > 0)
+    ? cmsTestimonials.map((t, idx) => ({
+        id: t.id || idx + 1,
+        name: t.name || t.author?.split(',')?.[0]?.trim() || `Enterprise Leader ${idx + 1}`,
+        role: t.role || t.title || t.author?.split(',')?.[1]?.trim() || 'Executive Partner',
+        avatar: t.avatar || t.image || testimonials[idx % testimonials.length]?.avatar,
+        quote: t.quote || '',
+      }))
+    : testimonials;
+
   const sectionRef = useRef(null);
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -124,7 +138,7 @@ export default function Testimonials() {
         <div className="marquee-track flex items-stretch gap-4 sm:gap-6 px-3 sm:px-4">
           {/* Set 1 */}
           <div className="flex items-stretch gap-4 sm:gap-6 shrink-0">
-            {testimonials.map((item) => (
+            {displayTestimonials.map((item) => (
               <div
                 key={`t1-${item.id}`}
                 className="w-[285px] xs:w-[320px] sm:w-[400px] shrink-0 p-5 sm:p-7 bg-white rounded-[20px] sm:rounded-[24px] border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-[#E69D2B]/40 transition-all duration-300 flex flex-col justify-between"
@@ -168,7 +182,7 @@ export default function Testimonials() {
 
           {/* Set 2 (Duplicate for Seamless Loop) */}
           <div className="flex items-stretch gap-4 sm:gap-6 shrink-0" aria-hidden="true">
-            {testimonials.map((item) => (
+            {displayTestimonials.map((item) => (
               <div
                 key={`t2-${item.id}`}
                 className="w-[285px] xs:w-[320px] sm:w-[400px] shrink-0 p-5 sm:p-7 bg-white rounded-[20px] sm:rounded-[24px] border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-[#E69D2B]/40 transition-all duration-300 flex flex-col justify-between"

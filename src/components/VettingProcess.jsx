@@ -15,10 +15,11 @@ const DEFAULT_STAGES = [
 ];
 
 export default function VettingProcess({ onNavigateContact, onNavigateServices }) {
-  const { content } = useCMS();
+  const { content, isLivePreview } = useCMS();
   const stagesList = content?.vettingStages && content.vettingStages.length > 0
     ? content.vettingStages.map(s => ({ ...s, label: s.label || `${s.order} ${s.name}` }))
     : DEFAULT_STAGES;
+  const vettingImages = content?.images?.vettingSteps || [];
   const containerRef = useRef(null);
   const stageRef = useRef(null);
 
@@ -57,7 +58,7 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
     window.addEventListener('resize', checkMobile);
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
+    if (prefersReducedMotion || isLivePreview) {
       setIsMobile(true);
       return () => window.removeEventListener('resize', checkMobile);
     }
@@ -166,9 +167,9 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
   }, []);
 
   // ===========================================================================
-  // MOBILE PRESENTATION (Natural Editorial Flow, No Pinned Locking)
+  // MOBILE / LIVE PREVIEW PRESENTATION (Natural Editorial Flow, No Pinned Locking)
   // ===========================================================================
-  if (isMobile) {
+  if (isMobile || isLivePreview) {
     return (
       <section id="process-story" className="w-full bg-[#0B0F17] text-white py-14 sm:py-20 px-5 sm:px-8 pb-24">
         <div className="max-w-2xl mx-auto space-y-12 sm:space-y-16">
@@ -194,7 +195,7 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
           <div className="space-y-3.5">
             <div className="relative aspect-[16/10] sm:aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/10 shadow-lg">
               <img
-                src="/assets/card1-staffing.jpg"
+                src={vettingImages[0] || content?.vettingStages?.[0]?.image || '/assets/card1-staffing.jpg'}
                 alt="Leadership Team in Discussion"
                 className="w-full h-full object-cover"
               />
@@ -202,11 +203,10 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
             </div>
             <div className="pt-1 pr-12 sm:pr-0">
               <span className="text-xs font-sans tracking-widest text-[#F5A623] uppercase block mb-1">
-                01 / Understand
+                {stagesList[0]?.label || '01 / Understand'}
               </span>
               <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                Before searching, we take the time to understand the business, the leadership
-                dynamics, and the specific objectives of the hire.
+                {stagesList[0]?.description || 'Before searching, we take the time to understand the business, the leadership dynamics, and the specific objectives of the hire.'}
               </p>
             </div>
           </div>
@@ -215,7 +215,7 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
           <div className="space-y-5 pt-4 border-t border-white/10">
             <div>
               <span className="text-xs font-sans tracking-widest text-[#F5A623] uppercase block mb-1.5">
-                02 / Discover
+                {stagesList[1]?.label || '02 / Discover'}
               </span>
               <h3 className="text-2xl sm:text-3xl font-medium text-white tracking-tight leading-[1.18] mb-2.5">
                 Finding the Right People
@@ -223,15 +223,14 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
                 Takes More Than a Search.
               </h3>
               <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-5 pr-6 sm:pr-0">
-                We look beyond job titles to understand relevant experience, capabilities, and the
-                needs of each role.
+                {stagesList[1]?.description || 'We look beyond job titles to understand relevant experience, capabilities, and the needs of each role.'}
               </p>
             </div>
 
             {/* Candidate Editorial Portrait */}
             <div className="flex flex-row gap-4 sm:gap-5 items-start bg-[#121826]/70 border border-white/5 p-4 rounded-2xl">
               <img
-                src="/assets/female-executive-beige.jpg"
+                src={vettingImages[4] || content?.vettingStages?.[4]?.image || '/assets/female-executive-beige.jpg'}
                 alt="Candidate Profile"
                 className="w-20 h-28 sm:w-28 sm:h-36 object-cover object-top rounded-xl border border-white/10 shadow-md shrink-0"
               />
@@ -269,7 +268,7 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
             </div>
             <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full overflow-hidden rounded-2xl border border-white/10 shadow-lg">
               <img
-                src="/assets/service-workforce.jpg"
+                src={vettingImages[2] || content?.vettingStages?.[2]?.image || '/assets/service-workforce.jpg'}
                 alt="Professional Dialogue"
                 className="w-full h-full object-cover"
               />
@@ -281,7 +280,7 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
           <div className="space-y-5 pt-4 border-t border-white/10">
             <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full overflow-hidden rounded-2xl border border-white/10 shadow-lg">
               <img
-                src="/assets/hero-1.jpg"
+                src={vettingImages[3] || content?.vettingStages?.[3]?.image || '/assets/hero-1.jpg'}
                 alt="Executive Workspace"
                 className="w-full h-full object-cover"
               />
@@ -350,7 +349,7 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
           {/* Canvas 1: The Need (Leadership Discussion) */}
           <div ref={bg1Ref} className="absolute inset-0 w-full h-full will-change-transform">
             <img
-              src="/assets/card1-staffing.jpg"
+              src={vettingImages[0] || content?.vettingStages?.[0]?.image || '/assets/card1-staffing.jpg'}
               alt="Leadership Discussion"
               className="w-full h-full object-cover object-[center_25%]"
               loading="eager"
@@ -363,7 +362,7 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
           {/* Canvas 2: The Search (Contemporary Office Context) */}
           <div ref={bg2Ref} className="absolute inset-0 w-full h-full will-change-transform">
             <img
-              src="/assets/card3-workforce.jpg"
+              src={vettingImages[1] || content?.vettingStages?.[1]?.image || '/assets/card3-workforce.jpg'}
               alt="Contemporary Office Environment"
               className="w-full h-full object-cover object-center"
               loading="lazy"
@@ -375,7 +374,7 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
           {/* Canvas 3: The Connection (Professional Dialogue) */}
           <div ref={bg3Ref} className="absolute inset-0 w-full h-full will-change-transform">
             <img
-              src="/assets/service-workforce.jpg"
+              src={vettingImages[2] || content?.vettingStages?.[2]?.image || '/assets/service-workforce.jpg'}
               alt="Professional Dialogue"
               className="w-full h-full object-cover object-center"
               loading="lazy"
@@ -387,7 +386,7 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
           {/* Canvas 4: The Outcome (Executive Workspace & Dark Slate Atmosphere) */}
           <div ref={bg4Ref} className="absolute inset-0 w-full h-full will-change-transform">
             <img
-              src="/assets/hero-1.jpg"
+              src={vettingImages[3] || content?.vettingStages?.[3]?.image || '/assets/hero-1.jpg'}
               alt="Executive Workspace Environment"
               className="w-full h-full object-cover object-center"
               loading="lazy"
@@ -473,7 +472,7 @@ export default function VettingProcess({ onNavigateContact, onNavigateServices }
               className="lg:col-span-6 flex flex-col sm:flex-row gap-6 sm:gap-8 items-start sm:items-center"
             >
               <img
-                src="/assets/female-executive-beige.jpg"
+                src={vettingImages[4] || content?.vettingStages?.[4]?.image || '/assets/female-executive-beige.jpg'}
                 alt="Elena Vance"
                 className="w-40 sm:w-48 lg:w-52 h-52 sm:h-64 lg:h-72 object-cover object-top shadow-2xl flex-shrink-0"
               />

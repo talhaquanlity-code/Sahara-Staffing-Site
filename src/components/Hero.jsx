@@ -340,25 +340,80 @@ export default function Hero({ onNavigate, onNavigateContact, onNavigateServices
           {heroData?.subtitle || 'A premium end-to-end staffing partner placing pre-vetted specialists across technology, finance, and executive leadership in record time.'}
         </p>
 
-        {/* Dual Action Buttons */}
-        <div className="hero-appear-actions flex flex-col sm:flex-row w-full sm:w-auto items-center justify-center gap-3 sm:gap-4 mb-10 sm:mb-12">
-          {/* Primary CTA */}
-          <button
-            onClick={() => onNavigateContact ? onNavigateContact() : openModal('Request Elite Talent')}
-            className="btn-shimmer w-full sm:w-auto justify-center bg-[#E69D2B] hover:bg-[#F6C467] text-[#0B0F17] font-semibold text-sm sm:text-base px-7 sm:px-8 py-3.5 sm:py-4 rounded-full inline-flex items-center gap-2.5 shadow-xl transition-all duration-200 active:scale-95 hover:-translate-y-0.5 group cursor-pointer"
-          >
-            <span>{heroData?.primaryCtaLabel || 'Request Talent'}</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </button>
+        {/* Dynamic Action Buttons (Strict Max 2 Buttons: 0, 1, or 2 rendered) */}
+        {(() => {
+          // Normalize buttons from heroData.buttons or fallback to legacy labels
+          let configuredButtons = [];
+          if (Array.isArray(heroData?.buttons)) {
+            configuredButtons = heroData.buttons.filter((b) => b && b.enabled !== false);
+          } else {
+            if (heroData?.primaryCtaLabel) {
+              configuredButtons.push({
+                id: 'btn-1',
+                enabled: true,
+                label: heroData.primaryCtaLabel,
+                destination: heroData.primaryCtaRoute ? `/${heroData.primaryCtaRoute}` : '/contact',
+                variant: 'primary',
+              });
+            }
+            if (heroData?.secondaryCtaLabel) {
+              configuredButtons.push({
+                id: 'btn-2',
+                enabled: true,
+                label: heroData.secondaryCtaLabel,
+                destination: heroData.secondaryCtaRoute ? `/${heroData.secondaryCtaRoute}` : '/services',
+                variant: 'secondary',
+              });
+            }
+          }
 
-          {/* Secondary CTA */}
-          <button
-            onClick={() => onNavigateServices ? onNavigateServices() : openModal('Explore Open Roles & Specializations')}
-            className="w-full sm:w-auto justify-center bg-white/5 border border-white/20 hover:border-white/40 text-white font-medium text-sm sm:text-base px-7 sm:px-8 py-3.5 sm:py-4 rounded-full hover:bg-white/10 transition-all duration-200 active:scale-95 hover:-translate-y-0.5 cursor-pointer backdrop-blur-sm"
-          >
-            {heroData?.secondaryCtaLabel || 'Explore Open Roles'}
-          </button>
-        </div>
+          if (configuredButtons.length === 0) return null;
+
+          const handleButtonClick = (btn) => {
+            const dest = (btn.destination || '').toLowerCase();
+            if (dest.includes('contact') && onNavigateContact) {
+              onNavigateContact();
+            } else if (dest.includes('services') && onNavigateServices) {
+              onNavigateServices();
+            } else if (dest.startsWith('#')) {
+              const el = document.querySelector(dest);
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            } else if (onNavigate && dest.replace('/', '')) {
+              onNavigate(dest.replace('/', ''));
+            } else {
+              openModal(btn.label || 'Request Talent');
+            }
+          };
+
+          return (
+            <div className="hero-appear-actions flex flex-col sm:flex-row w-full sm:w-auto items-center justify-center gap-3 sm:gap-4 mb-10 sm:mb-12">
+              {configuredButtons.slice(0, 2).map((btn, idx) => {
+                const isPrimary = btn.variant === 'primary' || idx === 0;
+                if (isPrimary) {
+                  return (
+                    <button
+                      key={btn.id || idx}
+                      onClick={() => handleButtonClick(btn)}
+                      className="btn-shimmer w-full sm:w-auto justify-center bg-[#E69D2B] hover:bg-[#F6C467] text-[#0B0F17] font-semibold text-sm sm:text-base px-7 sm:px-8 py-3.5 sm:py-4 rounded-full inline-flex items-center gap-2.5 shadow-xl transition-all duration-200 active:scale-95 hover:-translate-y-0.5 group cursor-pointer"
+                    >
+                      <span>{btn.label || 'Request Talent →'}</span>
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    key={btn.id || idx}
+                    onClick={() => handleButtonClick(btn)}
+                    className="w-full sm:w-auto justify-center bg-white/5 border border-white/20 hover:border-white/40 text-white font-medium text-sm sm:text-base px-7 sm:px-8 py-3.5 sm:py-4 rounded-full hover:bg-white/10 transition-all duration-200 active:scale-95 hover:-translate-y-0.5 cursor-pointer backdrop-blur-sm"
+                  >
+                    {btn.label || 'Explore Open Roles'}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </motion.div>
 
       {/* ========================================================================= */}
