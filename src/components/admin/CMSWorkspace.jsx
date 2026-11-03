@@ -32,6 +32,7 @@ import {
   Layers,
   Palette,
   CheckCircle2,
+  Edit3,
 } from 'lucide-react';
 import { useCMS, CMSPreviewProvider } from '../../context/CMSContext';
 
@@ -52,7 +53,66 @@ import AboutPage from '../../pages/AboutPage';
 import ServicesPage from '../../pages/ServicesPage';
 import ContactPage from '../../pages/ContactPage';
 
-export default function CMSWorkspace() {
+
+// ---------------------------------------------------------------------------
+// INTERACTIVE SECTION WRAPPER WITH HOVER HIGHLIGHTS & CLICK-TO-EDIT
+// ---------------------------------------------------------------------------
+function EditableSection({
+  blockId,
+  blockNumber,
+  blockTitle,
+  children,
+  activeBlock,
+  isDrawerOpen,
+  onSelectBlock,
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  const isSelected = isDrawerOpen && activeBlock === blockId;
+
+  return (
+    <div
+      id={blockId}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onSelectBlock(blockId);
+      }}
+      className={`relative transition-all duration-150 cursor-pointer group ${
+        isSelected
+          ? 'outline outline-2 outline-[#E69D2B] outline-offset-[-2px] shadow-[0_0_30px_rgba(230,157,43,0.3)] z-20'
+          : isHovered
+          ? 'outline outline-2 outline-[#E69D2B] outline-offset-[-2px] shadow-[0_0_20px_rgba(230,157,43,0.2)] z-10'
+          : ''
+      }`}
+    >
+      <AnimatePresence>
+        {(isHovered || isSelected) && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-4 left-4 z-40 flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#0B0F17]/95 border border-[#E69D2B] text-white shadow-2xl pointer-events-none"
+          >
+            <span className="w-2 h-2 rounded-full bg-[#E69D2B] animate-pulse" />
+            <span className="text-xs font-bold font-mono text-[#E69D2B]">
+              ✏️ Edit Block {blockNumber}: {blockTitle}
+            </span>
+            <span className="text-[10px] text-white/70 font-sans hidden sm:inline">
+              (Click to edit)
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {children}
+    </div>
+  );
+}
+
+export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
   const {
     draftContent,
     content: publishedContent,
@@ -75,8 +135,50 @@ export default function CMSWorkspace() {
   // Active expanded section block per page
   const [activeBlock, setActiveBlock] = useState('home-block-01');
 
-  // Preview viewport mode: 'desktop' (Laptop 1280px) | 'mobile' (Phone 375px)
+  // Right Slide-Over Block Editor Drawer state
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Preview viewport mode: 'desktop' (True 100% scale) | 'mobile' (Phone 375px)
   const [viewportMode, setViewportMode] = useState('desktop');
+
+  const openBlockDrawer = (blockId, domAnchorId) => {
+    setActiveBlock(blockId);
+    setIsDrawerOpen(true);
+    if (domAnchorId) {
+      setTimeout(() => {
+        const targetContainer = viewportMode === 'desktop' ? previewScrollRef.current : mobileChassisRef.current;
+        const el = targetContainer?.querySelector(domAnchorId) || document.querySelector(domAnchorId);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    }
+  };
+
+  const getBlockTitle = (blockId) => {
+    switch (blockId) {
+      case 'home-block-01': return 'Block 01: Hero Section';
+      case 'home-block-02': return 'Block 02: Partners & Metrics Strip';
+      case 'home-block-03': return 'Block 03: Bento Solutions Grid';
+      case 'home-block-04': return 'Block 04: Kinetic Vetting Pipeline';
+      case 'home-block-05': return 'Block 05: Executive Hiring Estimator';
+      case 'home-block-06': return 'Block 06: Testimonials Carousel';
+      case 'home-block-07': return 'Block 07: Frequently Asked Questions';
+      case 'home-block-08': return 'Block 08: Bottom CTA & Footer';
+      case 'about-block-01': return 'Block 01: About Hero Section';
+      case 'about-block-02': return 'Block 02: Operating Benchmarks';
+      case 'about-block-03': return 'Block 03: Discipline Matrix';
+      case 'about-block-04': return 'Block 04: Leadership Council';
+      case 'about-block-05': return 'Block 05: Hard Scale Stats';
+      case 'about-block-06': return 'Block 06: Final CTA';
+      case 'services-block-01': return 'Block 01: Services Hero Section';
+      case 'services-block-02': return 'Block 02: Service Capabilities Grid';
+      case 'services-block-03': return 'Block 03: Vetting Process';
+      case 'services-block-04': return 'Block 04: Engagement Models';
+      case 'services-block-05': return 'Block 05: SLA Guarantee';
+      case 'contact-block-01': return 'Block 01: Contact Form & Intake';
+      case 'global-settings': return 'Global Site Utility Toggles';
+      default: return 'Section Settings';
+    }
+  };
 
   // Preview reload key to force re-render when clicking browser refresh
   const [previewKey, setPreviewKey] = useState(0);
@@ -121,7 +223,10 @@ export default function CMSWorkspace() {
     else if (activePageTab === 'about') setActiveBlock('about-block-01');
     else if (activePageTab === 'services') setActiveBlock('services-block-01');
     else if (activePageTab === 'contact') setActiveBlock('contact-block-01');
-    else if (activePageTab === 'settings') setActiveBlock('global-settings');
+    else if (activePageTab === 'settings') {
+      setActiveBlock('global-settings');
+      setIsDrawerOpen(true);
+    }
   }, [activePageTab]);
 
   // ---------------------------------------------------------------------------
@@ -365,7 +470,7 @@ export default function CMSWorkspace() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="relative w-full h-full flex flex-col min-h-screen bg-[#0B0F17] overflow-hidden">
       {/* ===================================================================== */}
       {/* GLOBAL GREEN SUCCESS TOAST BANNER                                     */}
       {/* ===================================================================== */}
@@ -376,7 +481,7 @@ export default function CMSWorkspace() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.96 }}
             transition={{ duration: 0.3 }}
-            className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/90 via-[#064e3b]/90 to-emerald-950/90 border border-emerald-500/50 text-white shadow-2xl flex items-center justify-between gap-4"
+            className="fixed top-20 right-8 z-[60] p-4 rounded-xl bg-gradient-to-r from-emerald-950/95 via-[#064e3b]/95 to-emerald-950/95 border border-emerald-500/50 text-white shadow-2xl flex items-center justify-between gap-4 max-w-md"
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0">
@@ -391,129 +496,496 @@ export default function CMSWorkspace() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => {}}
-              className="text-emerald-300 hover:text-white p-1 rounded-lg"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* ===================================================================== */}
-      {/* WORKSPACE TOP ACTION BAR                                              */}
+      {/* 1. FLOATING TOP CONTROL BAR (FIXED OVERLAY AT TOP CENTER)              */}
       {/* ===================================================================== */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#1E293B]/70">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-white tracking-tight font-sans">
-              Site Content CMS &amp; Live Customizer
-            </h1>
-            <span className="text-[11px] font-mono tracking-wider uppercase font-semibold">
-              {hasUnsavedChanges ? (
-                <span className="text-[#E69D2B] bg-[#E69D2B]/10 px-2 py-0.5 rounded border border-[#E69D2B]/30 animate-pulse">
-                  [Draft Changes Pending]
-                </span>
-              ) : (
-                <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-                  [Synchronized With Site]
-                </span>
-              )}
-            </span>
-          </div>
-          <p className="text-xs text-[#94A3B8] mt-1 font-inter">
-            Multi-page CMS editor with auto-scrolling live preview canvas, image replacement dropzones, and global site utility toggles.
-          </p>
-        </div>
-
-        {/* Global Save & Discard Actions */}
-        <div className="flex items-center gap-3">
-          {hasUnsavedChanges && (
+      <header className="sticky top-3 z-40 mx-auto w-[calc(100%-2rem)] max-w-6xl px-4 py-2.5 bg-[#0E131F]/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_10px_35px_rgba(0,0,0,0.6)] flex items-center justify-between gap-3 shrink-0">
+        {/* Left: Sidebar Toggle + Page Route Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          {onToggleSidebar && (
             <button
               type="button"
-              onClick={discardDraft}
-              className="text-xs text-[#94A3B8] hover:text-white transition-colors cursor-pointer py-2 px-3 rounded-lg border border-white/10 hover:border-white/25"
+              onClick={onToggleSidebar}
+              className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-[#94A3B8] hover:text-[#E69D2B] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              title={sidebarCollapsed ? "Expand sidebar (260px)" : "Collapse sidebar (68px)"}
             >
-              Discard Changes
+              <LayoutGrid className="w-4 h-4" />
             </button>
           )}
 
+          {/* Minimal Animated Page Route Tabs */}
+          {[
+            { id: 'home', label: 'Home', icon: Home },
+            { id: 'about', label: 'About', icon: Info },
+            { id: 'services', label: 'Services', icon: Briefcase },
+            { id: 'contact', label: 'Contact', icon: PhoneCall },
+            { id: 'settings', label: 'Global Settings', icon: SettingsIcon },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activePageTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActivePageTab(tab.id);
+                  if (tab.id === 'settings') {
+                    setActiveBlock('global-settings');
+                    setIsDrawerOpen(true);
+                  }
+                }}
+                className={`relative px-3.5 py-1.5 rounded-xl font-sans text-xs font-bold transition-colors cursor-pointer select-none flex items-center gap-1.5 shrink-0 ${
+                  isActive ? 'text-[#0B0F17]' : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeCmsTab"
+                    className="absolute inset-0 bg-[#E69D2B] rounded-xl shadow-md z-0"
+                    transition={{ type: 'spring', bounce: 0.18, duration: 0.35 }}
+                  />
+                )}
+                <Icon className={`w-3.5 h-3.5 relative z-10 ${isActive ? 'text-[#0B0F17]' : 'text-[#E69D2B]'}`} />
+                <span className="relative z-10">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Center / Right: Viewport Mode + Drawer Trigger + Save & Publish */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Device Viewport Switcher */}
+          <div className="flex items-center gap-1 bg-[#131926] p-1 rounded-xl border border-white/5">
+            <button
+              type="button"
+              onClick={() => setViewportMode('desktop')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewportMode === 'desktop'
+                  ? 'bg-[#E69D2B] text-[#0B0F17] shadow-sm font-bold'
+                  : 'text-[#94A3B8] hover:text-white'
+              }`}
+              title="Desktop True 100% Dimensions"
+            >
+              <Monitor className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Desktop</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setViewportMode('mobile')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewportMode === 'mobile'
+                  ? 'bg-[#E69D2B] text-[#0B0F17] shadow-sm font-bold'
+                  : 'text-[#94A3B8] hover:text-white'
+              }`}
+              title="Mobile 375px Chassis"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Mobile (375px)</span>
+            </button>
+          </div>
+
+          {/* Quick Edit Drawer Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
+              isDrawerOpen
+                ? 'bg-[#E69D2B]/20 text-[#E69D2B] border-[#E69D2B]/40'
+                : 'bg-[#131926] text-white border-white/10 hover:border-[#E69D2B]/40'
+            }`}
+          >
+            <Edit3 className="w-3.5 h-3.5 text-[#E69D2B]" />
+            <span className="hidden md:inline">
+              {isDrawerOpen ? 'Close Drawer' : 'Edit Block'}
+            </span>
+          </button>
+
+          {/* Save & Publish Changes Gold CTA */}
           <button
             type="button"
             onClick={publishChanges}
             disabled={publishStatus === 'saving' || !hasUnsavedChanges}
-            className="bg-[#E69D2B] text-[#0B0F17] font-bold px-6 py-2.5 rounded-xl hover:bg-amber-400 transition-all shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-95"
+            className="bg-[#E69D2B] text-[#0B0F17] font-bold px-4 py-1.5 rounded-xl text-xs hover:bg-amber-400 transition-all shadow-lg flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-95"
           >
             {publishStatus === 'saving' ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-[#0B0F17]" />
-                <span className="text-xs">Publishing Globally...</span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0B0F17]" />
+                <span className="hidden sm:inline">Publishing...</span>
               </>
             ) : publishStatus === 'published' ? (
               <>
-                <Check className="w-4 h-4 text-[#0B0F17] stroke-[3]" />
-                <span className="text-xs">Published Live</span>
+                <Check className="w-3.5 h-3.5 text-[#0B0F17] stroke-[3]" />
+                <span className="hidden sm:inline">Published Live</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 text-[#0B0F17]" />
-                <span className="text-xs">Save &amp; Publish Changes</span>
+                <Sparkles className="w-3.5 h-3.5 text-[#0B0F17]" />
+                <span className="hidden sm:inline">Save &amp; Publish</span>
               </>
             )}
           </button>
         </div>
-      </div>
+      </header>
 
       {/* ===================================================================== */}
-      {/* 1. TOP PAGE TAB NAVIGATION STRIP (MINIMAL & ANIMATED)                 */}
+      {/* 2. FULL-CANVAS VISUAL PREVIEW STAGE (100% REAL DIMENSIONS)            */}
       {/* ===================================================================== */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-        {[
-          { id: 'home', label: 'Home Page', icon: Home },
-          { id: 'about', label: 'About Page', icon: Info },
-          { id: 'services', label: 'Services Page', icon: Briefcase },
-          { id: 'contact', label: 'Contact Page', icon: PhoneCall },
-          { id: 'settings', label: 'Global Settings', icon: SettingsIcon },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activePageTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActivePageTab(tab.id)}
-              className={`relative px-5 py-2.5 rounded-xl font-sans text-xs font-bold transition-colors cursor-pointer select-none flex items-center gap-2 shrink-0 ${
-                isActive ? 'text-[#0B0F17]' : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="activeCmsTab"
-                  className="absolute inset-0 bg-[#E69D2B] rounded-xl shadow-md z-0"
-                  transition={{ type: 'spring', bounce: 0.18, duration: 0.4 }}
-                />
+      <div
+        ref={previewScrollRef}
+        data-lenis-prevent
+        className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain scroll-smooth custom-scrollbar bg-[#0B0F17] relative pt-4"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
+      >
+        <CMSPreviewProvider content={draftContent} settings={settings} key={previewKey}>
+          {viewportMode === 'desktop' ? (
+            /* DESKTOP MODE (TRUE 1:1 REAL DIMENSIONS, 100% WIDTH) */
+            <div className="w-full min-h-full bg-[#0B0F17] text-white">
+              {(activePageTab === 'home' || activePageTab === 'settings') && (
+                <>
+                  <EditableSection
+                    blockId="home-block-01"
+                    blockNumber="01"
+                    blockTitle="Hero Section"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="hero-section">
+                      <Hero />
+                    </div>
+                  </EditableSection>
+
+                  <EditableSection
+                    blockId="home-block-02"
+                    blockNumber="02"
+                    blockTitle="Partners & Metrics Strip"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="metrics-section">
+                      <SocialProofMarquee />
+                    </div>
+                  </EditableSection>
+
+                  <EditableSection
+                    blockId="home-block-03"
+                    blockNumber="03"
+                    blockTitle="Bento Solutions Grid"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="capital-section">
+                      <BentoGrowthCapital />
+                    </div>
+                  </EditableSection>
+
+                  <EditableSection
+                    blockId="home-block-04"
+                    blockNumber="04"
+                    blockTitle="Kinetic Vetting Pipeline"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="process-story">
+                      <VettingProcess />
+                    </div>
+                  </EditableSection>
+
+                  <EditableSection
+                    blockId="home-block-05"
+                    blockNumber="05"
+                    blockTitle="Executive Hiring Estimator"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="staffing-momentum">
+                      <Calculator />
+                    </div>
+                  </EditableSection>
+
+                  <EditableSection
+                    blockId="home-block-06"
+                    blockNumber="06"
+                    blockTitle="Testimonials Carousel"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="testimonials-section">
+                      <Testimonials />
+                    </div>
+                  </EditableSection>
+
+                  <EditableSection
+                    blockId="home-block-07"
+                    blockNumber="07"
+                    blockTitle="Frequently Asked Questions"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="faq-section">
+                      <FAQ />
+                    </div>
+                  </EditableSection>
+
+                  <EditableSection
+                    blockId="home-block-08"
+                    blockNumber="08"
+                    blockTitle="Bottom CTA & Footer"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="footer-section">
+                      <SpeakToExperts />
+                      <Footer />
+                    </div>
+                  </EditableSection>
+                </>
               )}
-              <Icon className={`w-4 h-4 relative z-10 ${isActive ? 'text-[#0B0F17]' : 'text-[#E69D2B]'}`} />
-              <span className="relative z-10">{tab.label}</span>
-            </button>
-          );
-        })}
+
+              {/* ABOUT PAGE */}
+              {activePageTab === 'about' && (
+                <div className="min-h-full bg-[#0B0F17]">
+                  <Header currentRoute="about" />
+                  <EditableSection
+                    blockId="about-block-01"
+                    blockNumber="01"
+                    blockTitle="About Narrative & Benchmarks"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="about-hero">
+                      <AboutPage />
+                    </div>
+                  </EditableSection>
+                  <Footer />
+                </div>
+              )}
+
+              {/* SERVICES PAGE */}
+              {activePageTab === 'services' && (
+                <div className="min-h-full bg-[#F8F6F1] text-[#0B0F17]">
+                  <Header currentRoute="services" />
+                  <EditableSection
+                    blockId="services-block-01"
+                    blockNumber="01"
+                    blockTitle="Services Capabilities & Practice"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="services-hero">
+                      <ServicesPage />
+                    </div>
+                  </EditableSection>
+                  <Footer />
+                </div>
+              )}
+
+              {/* CONTACT PAGE */}
+              {activePageTab === 'contact' && (
+                <div className="min-h-full bg-[#F8F6F1] text-[#0B0F17]">
+                  <Header currentRoute="contact" />
+                  <EditableSection
+                    blockId="contact-block-01"
+                    blockNumber="01"
+                    blockTitle="Contact Form & Intake Portal"
+                    activeBlock={activeBlock}
+                    isDrawerOpen={isDrawerOpen}
+                    onSelectBlock={openBlockDrawer}
+                  >
+                    <div id="contact-workspace">
+                      <ContactPage />
+                    </div>
+                  </EditableSection>
+                  <Footer />
+                </div>
+              )}
+            </div>
+          ) : (
+            /* MOBILE PHONE CHASSIS (CENTERED 375PX) */
+            <div className="py-8 px-4 flex justify-center items-start min-h-full bg-black/40">
+              <div
+                ref={mobileChassisRef}
+                data-lenis-prevent
+                className="w-[375px] h-[780px] max-h-[calc(100vh-140px)] mx-auto rounded-[40px] border-[6px] border-[#1E293B] overflow-y-auto overscroll-contain shadow-2xl bg-[#0B0F17] custom-scrollbar text-white relative flex flex-col"
+                style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
+              >
+                {/* Phone Speaker Notch */}
+                <div className="sticky top-0 z-30 w-full h-6 bg-[#0B0F17]/95 backdrop-blur-sm flex justify-center items-center shrink-0 border-b border-white/5">
+                  <div className="w-20 h-3 bg-[#1E293B] rounded-full" />
+                </div>
+
+                <div className="w-full flex-1">
+                  {(activePageTab === 'home' || activePageTab === 'settings') && (
+                    <>
+                      <EditableSection blockId="home-block-01" blockNumber="01" blockTitle="Hero Section" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <div id="hero-section"><Hero /></div>
+                      </EditableSection>
+                      <EditableSection blockId="home-block-02" blockNumber="02" blockTitle="Partners & Metrics Strip" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <div id="metrics-section"><SocialProofMarquee /></div>
+                      </EditableSection>
+                      <EditableSection blockId="home-block-03" blockNumber="03" blockTitle="Bento Solutions Grid" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <div id="capital-section"><BentoGrowthCapital /></div>
+                      </EditableSection>
+                      <EditableSection blockId="home-block-04" blockNumber="04" blockTitle="Kinetic Vetting Pipeline" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <div id="process-story"><VettingProcess /></div>
+                      </EditableSection>
+                      <EditableSection blockId="home-block-05" blockNumber="05" blockTitle="Executive Hiring Estimator" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <div id="staffing-momentum"><Calculator /></div>
+                      </EditableSection>
+                      <EditableSection blockId="home-block-06" blockNumber="06" blockTitle="Testimonials Carousel" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <div id="testimonials-section"><Testimonials /></div>
+                      </EditableSection>
+                      <EditableSection blockId="home-block-07" blockNumber="07" blockTitle="Frequently Asked Questions" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <div id="faq-section"><FAQ /></div>
+                      </EditableSection>
+                      <EditableSection blockId="home-block-08" blockNumber="08" blockTitle="Bottom CTA & Footer" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <div id="footer-section"><SpeakToExperts /><Footer /></div>
+                      </EditableSection>
+                    </>
+                  )}
+                  {activePageTab === 'about' && (
+                    <div>
+                      <Header currentRoute="about" />
+                      <EditableSection blockId="about-block-01" blockNumber="01" blockTitle="About Narrative" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <AboutPage />
+                      </EditableSection>
+                      <Footer />
+                    </div>
+                  )}
+                  {activePageTab === 'services' && (
+                    <div className="bg-[#F8F6F1] text-[#0B0F17]">
+                      <Header currentRoute="services" />
+                      <EditableSection blockId="services-block-01" blockNumber="01" blockTitle="Services Practice" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <ServicesPage />
+                      </EditableSection>
+                      <Footer />
+                    </div>
+                  )}
+                  {activePageTab === 'contact' && (
+                    <div className="bg-[#F8F6F1] text-[#0B0F17]">
+                      <Header currentRoute="contact" />
+                      <EditableSection blockId="contact-block-01" blockNumber="01" blockTitle="Contact Intake" activeBlock={activeBlock} isDrawerOpen={isDrawerOpen} onSelectBlock={openBlockDrawer}>
+                        <ContactPage />
+                      </EditableSection>
+                      <Footer />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </CMSPreviewProvider>
       </div>
 
       {/* ===================================================================== */}
-      {/* MASTER SPLIT-SCREEN WORKSPACE                                         */}
+      {/* 3. RIGHT SLIDE-OVER BLOCK EDITOR DRAWER (<AnimatePresence>)           */}
       {/* ===================================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* =================================================================== */}
-        {/* LEFT COLUMN: PAGE-SPECIFIC SECTION BLOCKS (6 COLUMNS)               */}
-        {/* =================================================================== */}
-        <div
-          data-lenis-prevent
-          className="lg:col-span-6 h-[calc(100vh-210px)] min-h-[520px] overflow-y-auto overscroll-contain pr-3 custom-scrollbar"
-          style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
-        >
+      <AnimatePresence>
+        {isDrawerOpen && activeBlock && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDrawerOpen(false)}
+              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]"
+            />
+
+            {/* Slide-over Drawer Panel */}
+            <motion.aside
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              data-lenis-prevent
+              className="w-[460px] max-w-[95vw] h-full fixed right-0 top-0 z-50 bg-[#0B0F17]/95 backdrop-blur-2xl border-l border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.85)] flex flex-col"
+            >
+              {/* Drawer Header */}
+              <div className="p-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#0E131F]/90">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E69D2B] animate-pulse" />
+                  <div>
+                    <span className="text-[10px] font-mono text-[#E69D2B] uppercase tracking-wider font-semibold block">
+                      Section Editor Drawer
+                    </span>
+                    <h2 className="text-sm font-bold text-white font-sans truncate max-w-[320px]">
+                      {getBlockTitle(activeBlock)}
+                    </h2>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-[#94A3B8] hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  title="Close Drawer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Drawer Quick Section Switcher */}
+              <div className="px-5 pt-3 pb-2 border-b border-white/5 bg-[#0B0F17]/60 shrink-0">
+                <label className="text-[9.5px] font-mono text-[#64748B] uppercase tracking-wider mb-1 block">
+                  Quick Switch Block:
+                </label>
+                <select
+                  value={activeBlock}
+                  onChange={(e) => setActiveBlock(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-lg bg-[#131926] border border-white/10 text-white text-xs font-sans focus:border-[#E69D2B] focus:outline-none cursor-pointer"
+                >
+                  <optgroup label="Home Page">
+                    <option value="home-block-01">Block 01: Hero Section</option>
+                    <option value="home-block-02">Block 02: Partners &amp; Metrics Strip</option>
+                    <option value="home-block-03">Block 03: Bento Solutions Grid</option>
+                    <option value="home-block-04">Block 04: Kinetic Vetting Pipeline</option>
+                    <option value="home-block-05">Block 05: Executive Hiring Estimator</option>
+                    <option value="home-block-06">Block 06: Testimonials Carousel</option>
+                    <option value="home-block-07">Block 07: Frequently Asked Questions</option>
+                    <option value="home-block-08">Block 08: Bottom CTA &amp; Footer</option>
+                  </optgroup>
+                  <optgroup label="About Page">
+                    <option value="about-block-01">Block 01: About Hero Section</option>
+                    <option value="about-block-02">Block 02: Operating Benchmarks</option>
+                    <option value="about-block-03">Block 03: Discipline Matrix</option>
+                    <option value="about-block-04">Block 04: Leadership Council</option>
+                    <option value="about-block-05">Block 05: Hard Scale Stats</option>
+                    <option value="about-block-06">Block 06: Final CTA</option>
+                  </optgroup>
+                  <optgroup label="Services Page">
+                    <option value="services-block-01">Block 01: Services Hero Section</option>
+                    <option value="services-block-02">Block 02: Service Capabilities Grid</option>
+                    <option value="services-block-03">Block 03: Vetting Process</option>
+                    <option value="services-block-04">Block 04: Engagement Models</option>
+                    <option value="services-block-05">Block 05: SLA Guarantee</option>
+                  </optgroup>
+                  <optgroup label="Contact Page">
+                    <option value="contact-block-01">Block 01: Contact Form &amp; Intake</option>
+                  </optgroup>
+                  <optgroup label="Global Settings">
+                    <option value="global-settings">Global Site Utilities &amp; Cursor</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Drawer Body: Form Inputs for all blocks */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar text-xs">
+
 
           {/* ================================================================= */}
           {/* TAB A: HOME PAGE (8 SECTION BLOCKS)                               */}
@@ -2124,192 +2596,38 @@ export default function CMSWorkspace() {
               </div>
             </div>
           )}
-        </div>
 
-        {/* =================================================================== */}
-        {/* RIGHT COLUMN: AUTO-SYNCED LAPTOP & PHONE LIVE PREVIEW (6 COLUMNS)   */}
-        {/* =================================================================== */}
-        <div className="lg:col-span-6 sticky top-2 h-[calc(100vh-210px)] min-h-[520px] bg-[#0B0F17] rounded-2xl overflow-hidden flex flex-col shadow-2xl border-0">
-          
-          {/* BROWSER TOP CHROME BAR (MINIMAL & ULTRA-CLEAN) */}
-          <div className="h-12 bg-[#0E131F] border-b border-white/5 px-4 flex items-center justify-between shrink-0 select-none z-20">
-            {/* Minimalist URL path tag */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#131926] text-[11px] text-[#94A3B8] font-mono">
-              <Lock className="w-3 h-3 text-[#E69D2B] shrink-0" />
-              <span className="text-white/90 font-medium">saharastaffing.com/preview</span>
-              <button
-                type="button"
-                onClick={() => setPreviewKey((k) => k + 1)}
-                className="text-[#64748B] hover:text-[#E69D2B] transition-colors ml-1 cursor-pointer"
-                title="Reload preview components"
-              >
-                <RefreshCw className="w-3 h-3" />
-              </button>
-            </div>
+              </div>
 
-            {/* Viewport Switcher Pills (💻 Desktop | 📱 Mobile) */}
-            <div className="flex items-center gap-1 bg-[#131926] p-1 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setViewportMode('desktop')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewportMode === 'desktop'
-                    ? 'bg-[#E69D2B] text-[#0B0F17] shadow-sm font-bold'
-                    : 'text-[#94A3B8] hover:text-white'
-                }`}
-              >
-                <span>💻</span>
-                <span>Desktop</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewportMode('mobile')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewportMode === 'mobile'
-                    ? 'bg-[#E69D2B] text-[#0B0F17] shadow-sm font-bold'
-                    : 'text-[#94A3B8] hover:text-white'
-                }`}
-              >
-                <span>📱</span>
-                <span>Mobile</span>
-              </button>
-            </div>
-          </div>
-
-          {/* SCALED LIVE RENDER CANVAS (SMOOTH OVERFLOW CONTAINER) */}
-          <div
-            ref={previewScrollRef}
-            data-lenis-prevent
-            className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain scroll-smooth custom-scrollbar bg-[#080B12] relative"
-            style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
-          >
-            <CMSPreviewProvider content={draftContent} settings={settings} key={previewKey}>
-              {viewportMode === 'desktop' ? (
-                /* LAPTOP / DESKTOP VIEWPORT (Scaled 1280px view) */
-                <div className="w-full overflow-x-hidden min-h-full py-4 flex justify-center">
-                  <div className="w-[1280px] origin-top scale-[0.65] sm:scale-[0.75] lg:scale-[0.82] mx-auto shrink-0 bg-[#0B0F17] text-white rounded-xl shadow-2xl overflow-hidden">
-                    {/* HOME PAGE RENDERING */}
-                    {(activePageTab === 'home' || activePageTab === 'settings') && (
-                      <>
-                        <div id="hero-section">
-                          <Hero />
-                        </div>
-                        <div id="metrics-section">
-                          <SocialProofMarquee />
-                        </div>
-                        <div id="capital-section">
-                          <BentoGrowthCapital />
-                        </div>
-                        <div id="process-story">
-                          <VettingProcess />
-                        </div>
-                        <div id="staffing-momentum">
-                          <Calculator />
-                        </div>
-                        <div id="testimonials-section">
-                          <Testimonials />
-                        </div>
-                        <div id="faq-section">
-                          <FAQ />
-                        </div>
-                        <div id="footer-section">
-                          <SpeakToExperts />
-                          <Footer />
-                        </div>
-                      </>
-                    )}
-
-                    {/* ABOUT PAGE RENDERING */}
-                    {activePageTab === 'about' && (
-                      <div className="min-h-full bg-[#0B0F17]">
-                        <Header currentRoute="about" />
-                        <div id="about-hero">
-                          <AboutPage />
-                        </div>
-                        <Footer />
-                      </div>
-                    )}
-
-                    {/* SERVICES PAGE RENDERING */}
-                    {activePageTab === 'services' && (
-                      <div className="min-h-full bg-[#F8F6F1] text-[#0B0F17]">
-                        <Header currentRoute="services" />
-                        <div id="services-hero">
-                          <ServicesPage />
-                        </div>
-                        <Footer />
-                      </div>
-                    )}
-
-                    {/* CONTACT PAGE RENDERING */}
-                    {activePageTab === 'contact' && (
-                      <div className="min-h-full bg-[#F8F6F1] text-[#0B0F17]">
-                        <Header currentRoute="contact" />
-                        <div id="contact-workspace">
-                          <ContactPage />
-                        </div>
-                        <Footer />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                /* PHONE VIEWPORT (Centered 375px phone chassis) */
-                <div className="w-full min-h-full flex justify-center items-center py-6 px-3">
-                  <div
-                    ref={mobileChassisRef}
-                    data-lenis-prevent
-                    className="w-[375px] h-[720px] max-h-[calc(100vh-280px)] mx-auto rounded-[36px] border-4 border-[#1E293B] overflow-y-auto overscroll-contain shadow-2xl my-auto bg-[#0B0F17] custom-scrollbar text-white relative flex flex-col"
-                    style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
-                  >
-                    {/* Top phone speaker notch */}
-                    <div className="sticky top-0 z-30 w-full h-6 bg-[#0B0F17]/95 backdrop-blur-sm flex justify-center items-center shrink-0 border-b border-white/5">
-                      <div className="w-20 h-3 bg-[#1E293B] rounded-full" />
-                    </div>
-
-                    <div className="w-full flex-1">
-                      {(activePageTab === 'home' || activePageTab === 'settings') && (
-                        <>
-                          <div id="hero-section"><Hero /></div>
-                          <div id="metrics-section"><SocialProofMarquee /></div>
-                          <div id="capital-section"><BentoGrowthCapital /></div>
-                          <div id="process-story"><VettingProcess /></div>
-                          <div id="staffing-momentum"><Calculator /></div>
-                          <div id="testimonials-section"><Testimonials /></div>
-                          <div id="faq-section"><FAQ /></div>
-                          <div id="footer-section"><SpeakToExperts /><Footer /></div>
-                        </>
-                      )}
-                      {activePageTab === 'about' && (
-                        <div>
-                          <Header currentRoute="about" />
-                          <div id="about-hero"><AboutPage /></div>
-                          <Footer />
-                        </div>
-                      )}
-                      {activePageTab === 'services' && (
-                        <div className="bg-[#F8F6F1] text-[#0B0F17]">
-                          <Header currentRoute="services" />
-                          <ServicesPage />
-                          <Footer />
-                        </div>
-                      )}
-                      {activePageTab === 'contact' && (
-                        <div className="bg-[#F8F6F1] text-[#0B0F17]">
-                          <Header currentRoute="contact" />
-                          <ContactPage />
-                          <Footer />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CMSPreviewProvider>
-          </div>
-        </div>
-      </div>
+              {/* Drawer Footer Actions */}
+              <div className="p-4 border-t border-white/10 bg-[#0E131F]/90 shrink-0 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="text-xs text-[#94A3B8] hover:text-white py-2 px-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
+                >
+                  Done Editing
+                </button>
+                <button
+                  type="button"
+                  onClick={publishChanges}
+                  disabled={publishStatus === 'saving' || !hasUnsavedChanges}
+                  className="bg-[#E69D2B] text-[#0B0F17] font-bold px-5 py-2 rounded-xl text-xs hover:bg-amber-400 transition-all shadow-md disabled:opacity-50 cursor-pointer select-none active:scale-95 flex items-center gap-1.5"
+                >
+                  {publishStatus === 'saving' ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save &amp; Publish Changes</span>
+                  )}
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

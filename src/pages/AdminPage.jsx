@@ -13,6 +13,8 @@ import {
   Menu,
   X,
   ExternalLink,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import logoImg from '../assets/sahara-logo.png';
 import markImg from '../assets/sahara-mark.png';
@@ -30,6 +32,7 @@ export default function AdminPage({ onNavigateHome }) {
   // Active Workspace: 'ats' | 'cms' | 'settings'
   const [activeWorkspace, setActiveWorkspace] = useState('ats');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Candidates Dataset State
   const [candidates, setCandidates] = useState([]);
@@ -278,25 +281,48 @@ export default function AdminPage({ onNavigateHome }) {
   return (
     <div data-lenis-prevent className="min-h-screen lg:h-screen lg:overflow-hidden bg-[#0B0F17] text-white flex">
       {/* ===================================================================== */}
-      {/* 1. FIXED LEFT SIDEBAR (EXACTLY 260px WIDE ON DESKTOP)                 */}
+      {/* 1. COLLAPSIBLE LEFT SIDEBAR (260px Expanded <-> 68px Compact Rail)   */}
       {/* ===================================================================== */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[260px] bg-[#0E131F] border-r border-[#1E293B]/60 flex flex-col justify-between transition-transform duration-200 lg:translate-x-0 ${
-          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-40 ${
+          sidebarCollapsed ? 'lg:w-[68px]' : 'lg:w-[260px]'
+        } w-[260px] bg-[#0E131F] border-r border-[#1E293B]/60 flex flex-col justify-between transition-all duration-300 ease-in-out ${
+          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* Brand Header */}
-        <div className="p-5 border-b border-[#1E293B]/60 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <img src={markImg} alt="Sahara" className="h-6 w-auto" />
-            <div>
-              <div className="text-xs font-bold text-white tracking-wide uppercase">
-                Sahara Staffing
+        {/* Brand Header & Collapse Toggle */}
+        <div
+          className={`p-4 border-b border-[#1E293B]/60 flex items-center ${
+            sidebarCollapsed ? 'justify-center' : 'justify-between'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <img src={markImg} alt="Sahara" className="h-6 w-auto shrink-0" />
+            {!sidebarCollapsed && (
+              <div className="truncate">
+                <div className="text-xs font-bold text-white tracking-wide uppercase">
+                  Sahara Staffing
+                </div>
+                <div className="text-[10px] text-[#E69D2B] font-mono">Executive Admin</div>
               </div>
-              <div className="text-[10px] text-[#E69D2B] font-mono">Executive Admin</div>
-            </div>
+            )}
           </div>
 
+          {/* Desktop Collapse / Expand Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="hidden lg:flex w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-[#94A3B8] hover:text-[#E69D2B] items-center justify-center transition-colors cursor-pointer ml-auto"
+            title={sidebarCollapsed ? 'Expand sidebar (260px)' : 'Collapse sidebar to 68px compact rail'}
+          >
+            {sidebarCollapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </button>
+
+          {/* Mobile Close Button */}
           <button
             type="button"
             onClick={() => setMobileSidebarOpen(false)}
@@ -306,11 +332,13 @@ export default function AdminPage({ onNavigateHome }) {
           </button>
         </div>
 
-        {/* Workspace Navigation Items (Restrained Left Indicator, No Bulky Pills) */}
-        <nav className="p-3 space-y-1 flex-1">
-          <div className="px-3 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
-            Workspaces
-          </div>
+        {/* Workspace Navigation Items (Smooth Icon-Only Rail when Collapsed) */}
+        <nav className="p-2 space-y-1.5 flex-1">
+          {!sidebarCollapsed && (
+            <div className="px-3 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
+              Workspaces
+            </div>
+          )}
 
           {/* Item 1: ATS */}
           <button
@@ -319,14 +347,21 @@ export default function AdminPage({ onNavigateHome }) {
               setActiveWorkspace('ats');
               setMobileSidebarOpen(false);
             }}
-            className={`relative w-full px-3.5 py-2.5 text-xs flex items-center gap-3 transition-colors text-left cursor-pointer rounded-r-md ${
+            title="Applicant Talent Portal"
+            className={`relative w-full ${
+              sidebarCollapsed ? 'px-0 justify-center h-10' : 'px-3.5 py-2.5'
+            } text-xs flex items-center gap-3 transition-colors text-left cursor-pointer rounded-lg ${
               activeWorkspace === 'ats'
-                ? 'text-white font-medium bg-white/[0.04] before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:bg-[#E69D2B]'
+                ? 'text-white font-medium bg-[#E69D2B]/15 text-[#E69D2B]'
                 : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.02]'
             }`}
           >
-            <Users className="w-4 h-4 flex-shrink-0" />
-            <span className="truncate">Applicant Talent Portal</span>
+            <Users
+              className={`w-4 h-4 flex-shrink-0 ${
+                activeWorkspace === 'ats' ? 'text-[#E69D2B]' : ''
+              }`}
+            />
+            {!sidebarCollapsed && <span className="truncate">Applicant Talent Portal</span>}
           </button>
 
           {/* Item 2: CMS */}
@@ -336,14 +371,21 @@ export default function AdminPage({ onNavigateHome }) {
               setActiveWorkspace('cms');
               setMobileSidebarOpen(false);
             }}
-            className={`relative w-full px-3.5 py-2.5 text-xs flex items-center gap-3 transition-colors text-left cursor-pointer rounded-r-md ${
+            title="Site Content CMS & Live Editor"
+            className={`relative w-full ${
+              sidebarCollapsed ? 'px-0 justify-center h-10' : 'px-3.5 py-2.5'
+            } text-xs flex items-center gap-3 transition-colors text-left cursor-pointer rounded-lg ${
               activeWorkspace === 'cms'
-                ? 'text-white font-medium bg-white/[0.04] before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:bg-[#E69D2B]'
+                ? 'text-white font-medium bg-[#E69D2B]/15 text-[#E69D2B]'
                 : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.02]'
             }`}
           >
-            <LayoutGrid className="w-4 h-4 flex-shrink-0" />
-            <span className="truncate">Site Content CMS</span>
+            <LayoutGrid
+              className={`w-4 h-4 flex-shrink-0 ${
+                activeWorkspace === 'cms' ? 'text-[#E69D2B]' : ''
+              }`}
+            />
+            {!sidebarCollapsed && <span className="truncate">Site Content CMS</span>}
           </button>
 
           {/* Item 3: Settings */}
@@ -353,45 +395,75 @@ export default function AdminPage({ onNavigateHome }) {
               setActiveWorkspace('settings');
               setMobileSidebarOpen(false);
             }}
-            className={`relative w-full px-3.5 py-2.5 text-xs flex items-center gap-3 transition-colors text-left cursor-pointer rounded-r-md ${
+            title="Brand & Notifications"
+            className={`relative w-full ${
+              sidebarCollapsed ? 'px-0 justify-center h-10' : 'px-3.5 py-2.5'
+            } text-xs flex items-center gap-3 transition-colors text-left cursor-pointer rounded-lg ${
               activeWorkspace === 'settings'
-                ? 'text-white font-medium bg-white/[0.04] before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:bg-[#E69D2B]'
+                ? 'text-white font-medium bg-[#E69D2B]/15 text-[#E69D2B]'
                 : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.02]'
             }`}
           >
-            <Settings className="w-4 h-4 flex-shrink-0" />
-            <span className="truncate">Brand &amp; Notifications</span>
+            <Settings
+              className={`w-4 h-4 flex-shrink-0 ${
+                activeWorkspace === 'settings' ? 'text-[#E69D2B]' : ''
+              }`}
+            />
+            {!sidebarCollapsed && <span className="truncate">Brand &amp; Notifications</span>}
           </button>
         </nav>
 
-        {/* Lower Account & Controls (Unboxed, Minimal Typography) */}
-        <div className="p-4 border-t border-[#1E293B]/60 space-y-3">
-          <div className="px-1 text-[11px]">
-            <div className="text-[10px] text-[#64748B] uppercase tracking-wider font-medium">
-              Administrator
-            </div>
-            <div className="text-[#CBD5E1] font-mono text-xs truncate mt-0.5">
-              {session.email || 'administrator'}
-            </div>
-          </div>
+        {/* Lower Account & Controls */}
+        <div className="p-3 border-t border-[#1E293B]/60 space-y-2">
+          {!sidebarCollapsed ? (
+            <>
+              <div className="px-1 text-[11px]">
+                <div className="text-[10px] text-[#64748B] uppercase tracking-wider font-medium">
+                  Administrator
+                </div>
+                <div className="text-[#CBD5E1] font-mono text-xs truncate mt-0.5">
+                  {session.email || 'administrator'}
+                </div>
+              </div>
 
-          <button
-            type="button"
-            onClick={onNavigateHome}
-            className="w-full px-1 py-1.5 text-left text-xs text-[#94A3B8] hover:text-white transition-colors flex items-center justify-between cursor-pointer"
-          >
-            <span>Public Website</span>
-            <ExternalLink className="w-3.5 h-3.5 opacity-60" />
-          </button>
+              <button
+                type="button"
+                onClick={onNavigateHome}
+                className="w-full px-1 py-1.5 text-left text-xs text-[#94A3B8] hover:text-white transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>Public Website</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+              </button>
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full px-1 py-1.5 text-left text-xs font-medium text-red-400/85 hover:text-red-300 transition-colors flex items-center gap-2 cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Sign Out</span>
-          </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full px-1 py-1.5 text-left text-xs font-medium text-red-400/85 hover:text-red-300 transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-1">
+              <button
+                type="button"
+                onClick={onNavigateHome}
+                title="Public Website"
+                className="w-8 h-8 rounded-lg text-[#94A3B8] hover:text-white flex items-center justify-center transition-colors hover:bg-white/5 cursor-pointer"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="Sign Out"
+                className="w-8 h-8 rounded-lg text-red-400/85 hover:text-red-300 flex items-center justify-center transition-colors hover:bg-red-500/10 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -404,48 +476,61 @@ export default function AdminPage({ onNavigateHome }) {
       )}
 
       {/* ===================================================================== */}
-      {/* 2. MAIN WORKSPACE CANVAS                                              */}
+      {/* 2. MAIN WORKSPACE CANVAS (FULL-CANVAS VISUAL STAGE)                    */}
       {/* ===================================================================== */}
-      <div className="flex-1 lg:pl-[260px] flex flex-col min-w-0 lg:h-screen lg:overflow-hidden">
-        {/* Top Operational Bar (72px, Quiet Text Environment Indicator) */}
-        <header className="h-[72px] bg-[#0B0F17] border-b border-[#1E293B]/60 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-20 shrink-0">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg text-[#94A3B8] hover:text-white"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+      <div
+        className={`flex-1 ${
+          sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[260px]'
+        } flex flex-col min-w-0 lg:h-screen lg:overflow-hidden transition-all duration-300 ease-in-out`}
+      >
+        {/* Top Operational Bar (Hidden or Compact during full CMS visual editing) */}
+        {activeWorkspace !== 'cms' && (
+          <header className="h-[72px] bg-[#0B0F17] border-b border-[#1E293B]/60 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-20 shrink-0">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(true)}
+                className="lg:hidden p-2 rounded-lg text-[#94A3B8] hover:text-white"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
 
-            <span className="text-xs text-[#94A3B8] font-medium hidden sm:inline">
-              Sahara Staffing Inc. / Executive Command
-            </span>
-          </div>
+              <span className="text-xs text-[#94A3B8] font-medium hidden sm:inline">
+                Sahara Staffing Inc. / Executive Command
+              </span>
+            </div>
 
-          {/* Top Bar Right: Text Status Indicator & Quiet Logout */}
-          <div className="flex items-center gap-6">
-            <span className="text-[10.5px] font-mono tracking-widest text-[#64748B] uppercase">
-              {isSupabaseConfigured ? 'SUPABASE LIVE' : 'LOCAL MODE'}
-            </span>
+            {/* Top Bar Right: Text Status Indicator & Quiet Logout */}
+            <div className="flex items-center gap-6">
+              <span className="text-[10.5px] font-mono tracking-widest text-[#64748B] uppercase">
+                {isSupabaseConfigured ? 'SUPABASE LIVE' : 'LOCAL MODE'}
+              </span>
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="text-xs text-[#94A3B8] hover:text-white transition-colors cursor-pointer"
-            >
-              Log Out
-            </button>
-          </div>
-        </header>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-xs text-[#94A3B8] hover:text-white transition-colors cursor-pointer"
+              >
+                Log Out
+              </button>
+            </div>
+          </header>
+        )}
 
         {/* Dynamic Workspace Container */}
-        <main data-lenis-prevent className="flex-1 min-h-0 p-4 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
+        <main
+          data-lenis-prevent
+          className={`flex-1 min-h-0 relative ${
+            activeWorkspace === 'cms'
+              ? 'p-0 overflow-hidden'
+              : 'p-4 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar'
+          }`}
+        >
           {activeWorkspace === 'ats' && (
             <ATSWorkspace candidates={candidates} onRefreshCandidates={loadCandidates} />
           )}
 
-          {activeWorkspace === 'cms' && <CMSWorkspace />}
+          {activeWorkspace === 'cms' && <CMSWorkspace onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)} sidebarCollapsed={sidebarCollapsed} />}
 
           {activeWorkspace === 'settings' && <SettingsWorkspace />}
         </main>
