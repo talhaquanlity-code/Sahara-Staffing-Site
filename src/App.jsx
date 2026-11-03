@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UIProvider } from './context/UIContext';
 import { ScrollProvider } from './context/ScrollContext';
 import { CMSProvider, useCMS } from './context/CMSContext';
@@ -23,41 +23,129 @@ import ContactPage from './pages/ContactPage';
 import AdminPage from './pages/AdminPage';
 
 function LuxuryCursor() {
-  const [pos, setPos] = useState({ x: -100, y: -100 });
-  const [hovered, setHovered] = useState(false);
+  const dotRef = useRef(null);
+  const ringRef = useRef(null);
+  const mousePos = useRef({ x: -100, y: -100 });
+  const ringPos = useRef({ x: -100, y: -100 });
+  const vel = useRef({ x: 0, y: 0 });
   const [visible, setVisible] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [clicked, setClicked] = useState(false);
+  const rafId = useRef(null);
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      setPos({ x: e.clientX, y: e.clientY });
-      setVisible(true);
+    // Only mount on devices with a fine pointer (mouse/trackpad), not touchscreens
+    if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+      return;
+    }
+
+    let isMouseInWindow = false;
+
+    const onMouseMove = (e) => {
+      mousePos.current.x = e.clientX;
+      mousePos.current.y = e.clientY;
+
+      if (!isMouseInWindow) {
+        isMouseInWindow = true;
+        setVisible(true);
+      }
+
       const target = e.target;
-      const isInteractive = target?.closest('button, a, input, textarea, select, [role="button"]');
+      const isInteractive = target?.closest(
+        'button, a, input, textarea, select, [role="button"], label, .cursor-pointer'
+      );
       setHovered(!!isInteractive);
     };
-    const handleMouseLeave = () => setVisible(false);
 
-    window.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseleave', handleMouseLeave);
+    const onMouseDown = () => setClicked(true);
+    const onMouseUp = () => setClicked(false);
+    const onMouseLeave = () => {
+      isMouseInWindow = false;
+      setVisible(false);
+    };
+    const onMouseEnter = () => {
+      isMouseInWindow = true;
+      setVisible(true);
+    };
+
+    // 60-120fps GPU-accelerated LERP & fluid velocity physics loop
+    const render = () => {
+      // 1. Direct, instant precision tracking for core dot
+      if (dotRef.current) {
+        dotRef.current.style.transform = `translate3d(${mousePos.current.x}px, ${mousePos.current.y}px, 0)`;
+      }
+
+      // 2. Liquid trailing spring LERP for outer aura ring
+      const ease = 0.17; // Silky fluid damping factor
+      const dx = mousePos.current.x - ringPos.current.x;
+      const dy = mousePos.current.y - ringPos.current.y;
+
+      vel.current.x = dx;
+      vel.current.y = dy;
+
+      ringPos.current.x += dx * ease;
+      ringPos.current.y += dy * ease;
+
+      // Calculate velocity stretch / liquid deformation
+      const speed = Math.min(Math.hypot(dx, dy) * 0.005, 0.35);
+      const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+      if (ringRef.current) {
+        ringRef.current.style.transform = `translate3d(${ringPos.current.x}px, ${ringPos.current.y}px, 0) rotate(${angle}deg) scale(${1 + speed}, ${1 - speed * 0.4})`;
+      }
+
+      rafId.current = requestAnimationFrame(render);
+    };
+
+    rafId.current = requestAnimationFrame(render);
+
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('mouseleave', onMouseLeave);
+    document.addEventListener('mouseenter', onMouseEnter);
+
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseleave', handleMouseLeave);
+      cancelAnimationFrame(rafId.current);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mouseleave', onMouseLeave);
+      document.removeEventListener('mouseenter', onMouseEnter);
     };
   }, []);
 
   if (!visible) return null;
 
   return (
-    <div
-      className="fixed pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 ease-out"
-      style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
-    >
+    <div className="fixed inset-0 pointer-events-none z-[999999] overflow-hidden select-none">
+      {/* Fluid Trailing Aura Ring with Organic Glow */}
       <div
-        className={`rounded-full border border-[#E69D2B] bg-[#E69D2B]/15 transition-all duration-200 ${
-          hovered ? 'w-10 h-10 scale-125 bg-[#E69D2B]/30' : 'w-6 h-6'
-        }`}
-      />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#E69D2B]" />
+        ref={ringRef}
+        className="fixed top-0 left-0 -ml-5 -mt-5 w-10 h-10 rounded-full pointer-events-none will-change-transform"
+      >
+        <div
+          className={`w-full h-full rounded-full border transition-all duration-300 ease-out flex items-center justify-center ${
+            clicked
+              ? 'scale-75 border-[#E69D2B] bg-[#E69D2B]/35 shadow-[0_0_20px_rgba(230,157,43,0.6)]'
+              : hovered
+              ? 'scale-150 border-[#E69D2B] bg-[#E69D2B]/15 shadow-[0_0_28px_rgba(230,157,43,0.4)] backdrop-blur-[1px]'
+              : 'border-[#E69D2B]/70 bg-[#E69D2B]/8 shadow-[0_0_12px_rgba(230,157,43,0.2)]'
+          }`}
+        />
+      </div>
+
+      {/* Instant Precision Core Amber Dot */}
+      <div
+        ref={dotRef}
+        className="fixed top-0 left-0 -ml-1 -mt-1 w-2 h-2 rounded-full pointer-events-none will-change-transform flex items-center justify-center"
+      >
+        <div
+          className={`w-full h-full rounded-full bg-[#E69D2B] shadow-sm transition-all duration-200 ${
+            hovered ? 'scale-50 opacity-30' : clicked ? 'scale-125 bg-amber-300 shadow-[0_0_8px_#E69D2B]' : 'scale-100 opacity-90'
+          }`}
+        />
+      </div>
     </div>
   );
 }

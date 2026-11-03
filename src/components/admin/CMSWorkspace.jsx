@@ -509,7 +509,11 @@ export default function CMSWorkspace() {
         {/* =================================================================== */}
         {/* LEFT COLUMN: PAGE-SPECIFIC SECTION BLOCKS (6 COLUMNS)               */}
         {/* =================================================================== */}
-        <div className="lg:col-span-6 h-[calc(100vh-160px)] overflow-y-auto pr-3 custom-scrollbar">
+        <div
+          data-lenis-prevent
+          className="lg:col-span-6 h-[calc(100vh-210px)] min-h-[520px] overflow-y-auto overscroll-contain pr-3 custom-scrollbar"
+          style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
+        >
 
           {/* ================================================================= */}
           {/* TAB A: HOME PAGE (8 SECTION BLOCKS)                               */}
@@ -2054,167 +2058,69 @@ export default function CMSWorkspace() {
           {/* TAB E: GLOBAL SITE SETTINGS                                       */}
           {/* ================================================================= */}
           {activePageTab === 'settings' && (
-            <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg space-y-6 text-xs">
-              <div className="border-b border-[#1E293B] pb-3">
+            <div className="bg-[#1E293B]/60 rounded-2xl p-6 mb-4 border-0 shadow-lg space-y-5 text-xs">
+              <div className="border-b border-white/5 pb-3">
                 <h3 className="text-sm font-bold text-white font-sans flex items-center gap-2">
                   <SettingsIcon className="w-4 h-4 text-[#E69D2B]" />
-                  <span>Global Site Utility Toggles &amp; Brand Standards</span>
+                  <span>Global Site Utility Toggles</span>
                 </h3>
-                <p className="text-[11px] text-[#64748B] mt-0.5 font-inter">
-                  Controls navbar stickiness, floating scroll controls, luxury cursor, and primary brand palettes.
+                <p className="text-[11px] text-[#94A3B8] mt-0.5 font-inter">
+                  Manage the smooth fluid animated cursor pointer and the floating back-to-top button.
                 </p>
               </div>
 
-              {/* Utility Toggle 1: Sticky Navbar */}
-              <div className="p-4 rounded-xl bg-[#131926] border border-[#1E293B] flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-[#E69D2B]" />
-                    <span className="text-xs font-bold text-white font-sans">
-                      Sticky Navbar on Scroll
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                    When enabled, the 3-part glassmorphic navbar remains securely pinned to the top of the viewport with subtle backdrop-blur as the user scrolls.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => updateSettings({ stickyNavbar: !settings.stickyNavbar })}
-                  className="cursor-pointer text-[#E69D2B] mt-1 shrink-0"
-                >
-                  {settings.stickyNavbar ? (
-                    <ToggleRight className="w-6 h-6 text-emerald-400" />
-                  ) : (
-                    <ToggleLeft className="w-6 h-6 text-[#64748B]" />
-                  )}
-                </button>
-              </div>
-
-              {/* Utility Toggle 2: Back-to-Top Button */}
-              <div className="p-4 rounded-xl bg-[#131926] border border-[#1E293B] space-y-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <ArrowUpCircle className="w-4 h-4 text-[#E69D2B]" />
-                      <span className="text-xs font-bold text-white font-sans">
-                        Floating &lsquo;Back to Top&rsquo; Button (Bottom-Right)
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                      Displays the 44px circular SVG progress ring and back-to-top trigger in the lower right corner.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => updateSettings({ enableBackToTop: !settings.enableBackToTop })}
-                    className="cursor-pointer text-[#E69D2B] mt-1 shrink-0"
-                  >
-                    {settings.enableBackToTop ? (
-                      <ToggleRight className="w-6 h-6 text-emerald-400" />
-                    ) : (
-                      <ToggleLeft className="w-6 h-6 text-[#64748B]" />
-                    )}
-                  </button>
-                </div>
-
-                {settings.enableBackToTop && (
-                  <div className="pt-2 border-t border-[#1E293B]/60 flex items-center gap-3">
-                    <span className="text-[10px] text-[#64748B] uppercase font-mono">Button Icon:</span>
-                    <button
-                      type="button"
-                      onClick={() => updateSettings({ backToTopIcon: 'arrow' })}
-                      className={`px-2.5 py-1 rounded text-[10.5px] font-semibold border ${
-                        settings.backToTopIcon === 'arrow'
-                          ? 'bg-[#E69D2B] text-[#0B0F17] border-[#E69D2B]'
-                          : 'bg-[#0E131F] text-[#94A3B8] border-[#1E293B]'
-                      }`}
-                    >
-                      Default Arrow (↑)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateSettings({ backToTopIcon: 'sparkle' })}
-                      className={`px-2.5 py-1 rounded text-[10.5px] font-semibold border ${
-                        settings.backToTopIcon === 'sparkle'
-                          ? 'bg-[#E69D2B] text-[#0B0F17] border-[#E69D2B]'
-                          : 'bg-[#0E131F] text-[#94A3B8] border-[#1E293B]'
-                      }`}
-                    >
-                      Sahara Emblem (✦)
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Utility Toggle 3: Custom Luxury Cursor */}
-              <div className="p-4 rounded-xl bg-[#131926] border border-[#1E293B] flex items-start justify-between gap-4">
+              {/* Utility Toggle 1: Custom Luxury Cursor */}
+              <div className="p-4 rounded-xl bg-[#0B0F17]/80 flex items-start justify-between gap-4 transition-all">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <MousePointer className="w-4 h-4 text-[#E69D2B]" />
                     <span className="text-xs font-bold text-white font-sans">
-                      Custom Luxury Cursor Pointer
+                      Smooth Fluid Animated Cursor Pointer
                     </span>
                   </div>
                   <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                    Activates a gold trailing cursor dot with subtle expansion over buttons and links.
+                    Activates a fluid LERP-animated trailing gold cursor with velocity stretch, organic glow, and magnetic hover expansion.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => updateSettings({ enableCustomCursor: !settings.enableCustomCursor })}
-                  className="cursor-pointer text-[#E69D2B] mt-1 shrink-0"
+                  className="cursor-pointer text-[#E69D2B] mt-1 shrink-0 transition-transform active:scale-95"
+                  title="Toggle animated cursor pointer"
                 >
                   {settings.enableCustomCursor ? (
-                    <ToggleRight className="w-6 h-6 text-emerald-400" />
+                    <ToggleRight className="w-7 h-7 text-emerald-400" />
                   ) : (
-                    <ToggleLeft className="w-6 h-6 text-[#64748B]" />
+                    <ToggleLeft className="w-7 h-7 text-[#64748B]" />
                   )}
                 </button>
               </div>
 
-              {/* Brand Theme Overrides */}
-              <div className="p-4 rounded-xl bg-[#131926] border border-[#1E293B] space-y-3">
-                <div className="flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-[#E69D2B]" />
-                  <span className="text-xs font-bold text-white font-sans">
-                    Brand Theme &amp; Notification Overrides
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 font-mono">
-                      Sahara Gold Accent Color
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={settings.primaryAccent || '#E69D2B'}
-                        onChange={(e) => updateSettings({ primaryAccent: e.target.value })}
-                        className="w-8 h-8 rounded border border-white/20 bg-transparent cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={settings.primaryAccent || '#E69D2B'}
-                        onChange={(e) => updateSettings({ primaryAccent: e.target.value })}
-                        className="flex-1 px-2.5 py-1.5 rounded bg-[#0E131F] border border-[#1E293B] text-white font-mono text-xs"
-                      />
-                    </div>
+              {/* Utility Toggle 2: Back-to-Top Button */}
+              <div className="p-4 rounded-xl bg-[#0B0F17]/80 flex items-start justify-between gap-4 transition-all">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <ArrowUpCircle className="w-4 h-4 text-[#E69D2B]" />
+                    <span className="text-xs font-bold text-white font-sans">
+                      Floating &lsquo;Back to Top&rsquo; Button
+                    </span>
                   </div>
-
-                  <div>
-                    <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 font-mono">
-                      Client Notification Email
-                    </label>
-                    <input
-                      type="email"
-                      value={settings.recipientEmail || 'talhaquanlity@gmail.com'}
-                      onChange={(e) => updateSettings({ recipientEmail: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded bg-[#0E131F] border border-[#1E293B] text-white font-mono text-xs"
-                    />
-                  </div>
+                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                    Displays the circular SVG progress ring and one-click back-to-top return button in the bottom-right corner.
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ enableBackToTop: !settings.enableBackToTop })}
+                  className="cursor-pointer text-[#E69D2B] mt-1 shrink-0 transition-transform active:scale-95"
+                  title="Toggle back to top button"
+                >
+                  {settings.enableBackToTop ? (
+                    <ToggleRight className="w-7 h-7 text-emerald-400" />
+                  ) : (
+                    <ToggleLeft className="w-7 h-7 text-[#64748B]" />
+                  )}
+                </button>
               </div>
             </div>
           )}
@@ -2223,7 +2129,7 @@ export default function CMSWorkspace() {
         {/* =================================================================== */}
         {/* RIGHT COLUMN: AUTO-SYNCED LAPTOP & PHONE LIVE PREVIEW (6 COLUMNS)   */}
         {/* =================================================================== */}
-        <div className="lg:col-span-6 sticky top-6 h-[calc(100vh-160px)] bg-[#0B0F17] rounded-2xl overflow-hidden flex flex-col shadow-2xl border-0">
+        <div className="lg:col-span-6 sticky top-2 h-[calc(100vh-210px)] min-h-[520px] bg-[#0B0F17] rounded-2xl overflow-hidden flex flex-col shadow-2xl border-0">
           
           {/* BROWSER TOP CHROME BAR (MINIMAL & ULTRA-CLEAN) */}
           <div className="h-12 bg-[#0E131F] border-b border-white/5 px-4 flex items-center justify-between shrink-0 select-none z-20">
@@ -2274,7 +2180,9 @@ export default function CMSWorkspace() {
           {/* SCALED LIVE RENDER CANVAS (SMOOTH OVERFLOW CONTAINER) */}
           <div
             ref={previewScrollRef}
-            className="h-full overflow-y-auto scroll-smooth custom-scrollbar bg-[#080B12] relative"
+            data-lenis-prevent
+            className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain scroll-smooth custom-scrollbar bg-[#080B12] relative"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
           >
             <CMSPreviewProvider content={draftContent} settings={settings} key={previewKey}>
               {viewportMode === 'desktop' ? (
@@ -2351,7 +2259,9 @@ export default function CMSWorkspace() {
                 <div className="w-full min-h-full flex justify-center items-center py-6 px-3">
                   <div
                     ref={mobileChassisRef}
-                    className="w-[375px] h-[720px] mx-auto rounded-[36px] border-4 border-[#1E293B] overflow-y-auto shadow-2xl my-auto bg-[#0B0F17] custom-scrollbar text-white relative flex flex-col"
+                    data-lenis-prevent
+                    className="w-[375px] h-[720px] max-h-[calc(100vh-280px)] mx-auto rounded-[36px] border-4 border-[#1E293B] overflow-y-auto overscroll-contain shadow-2xl my-auto bg-[#0B0F17] custom-scrollbar text-white relative flex flex-col"
+                    style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
                   >
                     {/* Top phone speaker notch */}
                     <div className="sticky top-0 z-30 w-full h-6 bg-[#0B0F17]/95 backdrop-blur-sm flex justify-center items-center shrink-0 border-b border-white/5">

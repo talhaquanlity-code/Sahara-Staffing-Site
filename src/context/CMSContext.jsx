@@ -524,7 +524,7 @@ export const INITIAL_SETTINGS = {
   stickyNavbar: true,
   enableBackToTop: true,
   backToTopIcon: 'arrow', // 'arrow' | 'sparkle'
-  enableCustomCursor: false,
+  enableCustomCursor: true,
   primaryAccent: '#E69D2B',
   recipientEmail: 'talhaquanlity@gmail.com',
   companyName: 'Sahara Staffing Inc.',

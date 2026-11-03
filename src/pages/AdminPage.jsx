@@ -276,7 +276,7 @@ export default function AdminPage({ onNavigateHome }) {
   // VIEW 2: AUTHENTICATED EXECUTIVE DASHBOARD (REFINED DE-AI SHELL)
   // =========================================================================
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-white flex">
+    <div data-lenis-prevent className="min-h-screen lg:h-screen lg:overflow-hidden bg-[#0B0F17] text-white flex">
       {/* ===================================================================== */}
       {/* 1. FIXED LEFT SIDEBAR (EXACTLY 260px WIDE ON DESKTOP)                 */}
       {/* ===================================================================== */}
@@ -406,9 +406,9 @@ export default function AdminPage({ onNavigateHome }) {
       {/* ===================================================================== */}
       {/* 2. MAIN WORKSPACE CANVAS                                              */}
       {/* ===================================================================== */}
-      <div className="flex-1 lg:pl-[260px] flex flex-col min-w-0">
+      <div className="flex-1 lg:pl-[260px] flex flex-col min-w-0 lg:h-screen lg:overflow-hidden">
         {/* Top Operational Bar (72px, Quiet Text Environment Indicator) */}
-        <header className="h-[72px] bg-[#0B0F17] border-b border-[#1E293B]/60 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+        <header className="h-[72px] bg-[#0B0F17] border-b border-[#1E293B]/60 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-20 shrink-0">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -440,7 +440,7 @@ export default function AdminPage({ onNavigateHome }) {
         </header>
 
         {/* Dynamic Workspace Container */}
-        <main className="flex-1 p-6 sm:p-8 overflow-y-auto">
+        <main data-lenis-prevent className="flex-1 min-h-0 p-4 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
           {activeWorkspace === 'ats' && (
             <ATSWorkspace candidates={candidates} onRefreshCandidates={loadCandidates} />
           )}

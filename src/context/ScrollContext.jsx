@@ -54,9 +54,23 @@ export function ScrollProvider({ children }) {
 
     document.addEventListener('click', handleAnchorClick);
 
+    // 4. Disable Lenis on Admin route so nested dashboard panels scroll naturally
+    const checkAdminRoute = () => {
+      const isAdmin = window.location.hash.toLowerCase().includes('admin');
+      if (isAdmin) {
+        l.stop();
+      } else {
+        l.start();
+      }
+    };
+
+    checkAdminRoute();
+    window.addEventListener('hashchange', checkAdminRoute);
+
     // Clean up
     return () => {
       document.removeEventListener('click', handleAnchorClick);
+      window.removeEventListener('hashchange', checkAdminRoute);
       gsap.ticker.remove(updateTicker);
       l.destroy();
     };
