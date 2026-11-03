@@ -89,6 +89,7 @@ export default function CMSWorkspace() {
 
   // Ref to the live preview container for smooth section jumping
   const previewScrollRef = useRef(null);
+  const mobileChassisRef = useRef(null);
 
   // ---------------------------------------------------------------------------
   // AUTO-SCROLL TO SECTION SYNC
@@ -96,13 +97,14 @@ export default function CMSWorkspace() {
   // ---------------------------------------------------------------------------
   const handleBlockToggle = (blockId, domAnchorId) => {
     setActiveBlock((prev) => (prev === blockId ? null : blockId));
-    if (domAnchorId && previewScrollRef.current) {
+    if (domAnchorId) {
       setTimeout(() => {
-        const el = previewScrollRef.current?.querySelector(domAnchorId);
+        const targetContainer = viewportMode === 'desktop' ? previewScrollRef.current : mobileChassisRef.current;
+        const el = targetContainer?.querySelector(domAnchorId) || document.querySelector(domAnchorId);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }, 50);
+      }, 60);
     }
   };
 
@@ -110,6 +112,9 @@ export default function CMSWorkspace() {
   useEffect(() => {
     if (previewScrollRef.current) {
       previewScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (mobileChassisRef.current) {
+      mobileChassisRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
     // Set default active block for selected page
     if (activePageTab === 'home') setActiveBlock('home-block-01');
@@ -461,15 +466,15 @@ export default function CMSWorkspace() {
       </div>
 
       {/* ===================================================================== */}
-      {/* 1. TOP PAGE TAB SWITCHER (5 OPTIONS)                                  */}
+      {/* 1. TOP PAGE TAB NAVIGATION STRIP (MINIMAL & ANIMATED)                 */}
       {/* ===================================================================== */}
-      <div className="p-1.5 bg-[#0E131F] rounded-2xl border border-[#1E293B] shadow-lg flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
         {[
-          { id: 'home', label: 'Home Page', icon: Home, count: '8 Blocks' },
-          { id: 'about', label: 'About Page', icon: Info, count: '6 Blocks' },
-          { id: 'services', label: 'Services Page', icon: Briefcase, count: '5 Blocks' },
-          { id: 'contact', label: 'Contact Page', icon: PhoneCall, count: '1 Block' },
-          { id: 'settings', label: 'Global Site Settings', icon: SettingsIcon, count: 'Utilities' },
+          { id: 'home', label: 'Home Page', icon: Home },
+          { id: 'about', label: 'About Page', icon: Info },
+          { id: 'services', label: 'Services Page', icon: Briefcase },
+          { id: 'contact', label: 'Contact Page', icon: PhoneCall },
+          { id: 'settings', label: 'Global Settings', icon: SettingsIcon },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activePageTab === tab.id;
@@ -478,23 +483,19 @@ export default function CMSWorkspace() {
               key={tab.id}
               type="button"
               onClick={() => setActivePageTab(tab.id)}
-              className={`flex-1 min-w-[170px] py-2.5 px-3.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 flex items-center justify-between gap-2 cursor-pointer select-none ${
-                isActive
-                  ? 'bg-[#E69D2B] text-[#0B0F17] shadow-md scale-[1.01]'
-                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.04]'
+              className={`relative px-5 py-2.5 rounded-xl font-sans text-xs font-bold transition-colors cursor-pointer select-none flex items-center gap-2 shrink-0 ${
+                isActive ? 'text-[#0B0F17]' : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.04]'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-[#0B0F17]' : 'text-[#E69D2B]'}`} />
-                <span>{tab.label}</span>
-              </div>
-              <span
-                className={`text-[9.5px] font-mono px-2 py-0.5 rounded-full ${
-                  isActive ? 'bg-[#0B0F17]/20 text-[#0B0F17]' : 'bg-[#131926] text-[#64748B]'
-                }`}
-              >
-                {tab.count}
-              </span>
+              {isActive && (
+                <motion.div
+                  layoutId="activeCmsTab"
+                  className="absolute inset-0 bg-[#E69D2B] rounded-xl shadow-md z-0"
+                  transition={{ type: 'spring', bounce: 0.18, duration: 0.4 }}
+                />
+              )}
+              <Icon className={`w-4 h-4 relative z-10 ${isActive ? 'text-[#0B0F17]' : 'text-[#E69D2B]'}`} />
+              <span className="relative z-10">{tab.label}</span>
             </button>
           );
         })}
@@ -508,7 +509,7 @@ export default function CMSWorkspace() {
         {/* =================================================================== */}
         {/* LEFT COLUMN: PAGE-SPECIFIC SECTION BLOCKS (6 COLUMNS)               */}
         {/* =================================================================== */}
-        <div className="lg:col-span-6 space-y-4 max-h-[calc(100vh-210px)] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="lg:col-span-6 h-[calc(100vh-160px)] overflow-y-auto pr-3 custom-scrollbar">
 
           {/* ================================================================= */}
           {/* TAB A: HOME PAGE (8 SECTION BLOCKS)                               */}
@@ -516,14 +517,14 @@ export default function CMSWorkspace() {
           {activePageTab === 'home' && (
             <div className="space-y-3">
               {/* BLOCK 01: HERO SECTION */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('home-block-01', '#hero-section')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       01
                     </span>
                     <div>
@@ -543,7 +544,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'home-block-01' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-4 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-4 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 font-mono">
                         Kicker Eyebrow Badge
@@ -651,14 +652,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 02: PARTNERS & METRICS STRIP */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('home-block-02', '#metrics-section')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       02
                     </span>
                     <div>
@@ -678,7 +679,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'home-block-02' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3.5 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 font-mono">
                         Partner Ticker Kicker Label
@@ -736,14 +737,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 03: BENTO SOLUTIONS GRID */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('home-block-03', '#capital-section')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       03
                     </span>
                     <div>
@@ -763,7 +764,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'home-block-03' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-4 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-4 text-xs">
                     {(draftContent.home?.bento || draftContent.services || []).map((card, idx) => (
                       <div key={card.id || idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-3">
                         <div className="flex items-center justify-between">
@@ -849,14 +850,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 04: KINETIC VETTING PIPELINE */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('home-block-04', '#process-story')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       04
                     </span>
                     <div>
@@ -876,7 +877,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'home-block-04' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-4 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-4 text-xs">
                     {(draftContent.home?.vetting || draftContent.vettingStages || []).map((stage, idx) => (
                       <div key={idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-2.5">
                         <div className="flex items-center gap-2">
@@ -930,14 +931,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 05: EXECUTIVE HIRING ESTIMATOR */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('home-block-05', '#staffing-momentum')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       05
                     </span>
                     <div>
@@ -957,7 +958,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'home-block-05' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3.5 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 font-mono">
                         Estimator Eyebrow
@@ -1051,14 +1052,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 06: TESTIMONIALS CAROUSEL */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('home-block-06', '#testimonials-section')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       06
                     </span>
                     <div>
@@ -1078,7 +1079,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'home-block-06' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-4 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-4 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-[10.5px] font-bold text-[#E69D2B] uppercase tracking-wider font-mono">
                         Active Reviews ({draftContent.testimonials?.length || 0})
@@ -1183,14 +1184,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 07: FAQS */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('home-block-07', '#faq-section')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       07
                     </span>
                     <div>
@@ -1210,7 +1211,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'home-block-07' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-4 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-4 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-[10.5px] font-bold text-[#E69D2B] uppercase tracking-wider font-mono">
                         Questions ({draftContent.faqs?.length || 0})
@@ -1278,14 +1279,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 08: BOTTOM CTA & FOOTER */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('home-block-08', '#footer-section')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       08
                     </span>
                     <div>
@@ -1305,7 +1306,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'home-block-08' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3.5 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 font-mono">
                         Closing Banner Headline
@@ -1383,14 +1384,14 @@ export default function CMSWorkspace() {
           {activePageTab === 'about' && (
             <div className="space-y-3">
               {/* BLOCK 01: HERO SECTION */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('about-block-01', '#about-hero')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       01
                     </span>
                     <div>
@@ -1404,7 +1405,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'about-block-01' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase mb-1 font-mono">Kicker Eyebrow</label>
                       <input
@@ -1460,14 +1461,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 02: OPERATING BENCHMARKS */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('about-block-02', '#about-benchmarks')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       02
                     </span>
                     <div>
@@ -1479,7 +1480,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'about-block-02' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     {(draftContent.about?.benchmarks || []).map((b, idx) => (
                       <div key={idx} className="p-3 rounded-lg bg-[#131926] border border-[#1E293B] space-y-2">
                         <div className="flex items-center gap-2">
@@ -1512,14 +1513,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 03: DISCIPLINE MATRIX */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('about-block-03', '#about-mindset')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       03
                     </span>
                     <div>
@@ -1531,7 +1532,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'about-block-03' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3.5 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     {(draftContent.about?.chapters || []).map((ch, idx) => (
                       <div key={idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-2.5">
                         <div className="flex items-center justify-between">
@@ -1575,14 +1576,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 04: LEADERSHIP COUNCIL */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('about-block-04', '#about-leadership')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       04
                     </span>
                     <div>
@@ -1594,7 +1595,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'about-block-04' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3.5 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     {(draftContent.about?.leadership || []).map((lead, idx) => (
                       <div key={idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-2.5">
                         <div className="grid grid-cols-2 gap-2">
@@ -1646,14 +1647,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 05: HARD SCALE STATS */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('about-block-05', '#about-stats')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       05
                     </span>
                     <div>
@@ -1665,7 +1666,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'about-block-05' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 grid grid-cols-2 gap-3 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 gap-3 text-xs">
                     {(draftContent.about?.stats || []).map((s, idx) => (
                       <div key={idx} className="p-3 rounded-lg bg-[#131926] border border-[#1E293B] space-y-1">
                         <input
@@ -1695,14 +1696,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 06: FINAL CTA */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('about-block-06', '#about-final-cta')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       06
                     </span>
                     <div>
@@ -1714,7 +1715,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'about-block-06' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase mb-1 font-mono">Closing Headline</label>
                       <input
@@ -1759,14 +1760,14 @@ export default function CMSWorkspace() {
           {activePageTab === 'services' && (
             <div className="space-y-3">
               {/* BLOCK 01: HERO */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('services-block-01', '#services-hero')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       01
                     </span>
                     <div>
@@ -1778,7 +1779,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'services-block-01' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3.5 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase mb-1 font-mono">Kicker Eyebrow</label>
                       <input
@@ -1808,14 +1809,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 02: SERVICE CAPABILITIES GRID */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('services-block-02', '#services-capabilities')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       02
                     </span>
                     <div>
@@ -1827,7 +1828,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'services-block-02' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3.5 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     {(draftContent.servicesPage?.capabilities || []).map((cap, idx) => (
                       <div key={idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-2.5">
                         <span className="font-mono text-[#E69D2B] font-bold">{cap.badge}</span>
@@ -1858,14 +1859,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 03: VETTING PROCESS */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('services-block-03', '#services-vetting')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       03
                     </span>
                     <div>
@@ -1877,7 +1878,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'services-block-03' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     <input
                       type="text"
                       value={draftContent.servicesPage?.vetting?.headline || 'A 5-Stage Vetting Pipeline Built for Certainty.'}
@@ -1889,14 +1890,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 04: ENGAGEMENT MODELS */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('services-block-04', '#services-models')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       04
                     </span>
                     <div>
@@ -1908,7 +1909,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'services-block-04' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     {(draftContent.servicesPage?.engagementModels || []).map((m, idx) => (
                       <div key={idx} className="p-3 rounded-lg bg-[#131926] border border-[#1E293B]">
                         <input
@@ -1938,14 +1939,14 @@ export default function CMSWorkspace() {
               </div>
 
               {/* BLOCK 05: SLA GUARANTEE */}
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('services-block-05', '#services-sla')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       05
                     </span>
                     <div>
@@ -1957,7 +1958,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'services-block-05' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3 text-xs">
                     <input
                       type="text"
                       value={draftContent.servicesPage?.slaGuarantee?.headline || 'The Sahara 90-Day Unconditional Guarantee'}
@@ -1981,14 +1982,14 @@ export default function CMSWorkspace() {
           {/* ================================================================= */}
           {activePageTab === 'contact' && (
             <div className="space-y-3">
-              <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] overflow-hidden">
+              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('contact-block-01', '#contact-workspace')}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] cursor-pointer"
+                  className="w-full flex items-center justify-between text-left cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 border border-[#E69D2B]/30 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
+                    <span className="w-7 h-7 rounded-lg bg-[#E69D2B]/15 flex items-center justify-center font-mono text-xs font-bold text-[#E69D2B]">
                       01
                     </span>
                     <div>
@@ -2002,7 +2003,7 @@ export default function CMSWorkspace() {
                 </button>
 
                 {activeBlock === 'contact-block-01' && (
-                  <div className="p-4 pt-2 border-t border-[#1E293B]/70 space-y-3.5 text-xs">
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase mb-1 font-mono">Headline</label>
                       <input
@@ -2053,7 +2054,7 @@ export default function CMSWorkspace() {
           {/* TAB E: GLOBAL SITE SETTINGS                                       */}
           {/* ================================================================= */}
           {activePageTab === 'settings' && (
-            <div className="rounded-xl bg-[#0E131F] border border-[#1E293B] p-5 space-y-6 text-xs">
+            <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg space-y-6 text-xs">
               <div className="border-b border-[#1E293B] pb-3">
                 <h3 className="text-sm font-bold text-white font-sans flex items-center gap-2">
                   <SettingsIcon className="w-4 h-4 text-[#E69D2B]" />
@@ -2222,197 +2223,142 @@ export default function CMSWorkspace() {
         {/* =================================================================== */}
         {/* RIGHT COLUMN: AUTO-SYNCED LAPTOP & PHONE LIVE PREVIEW (6 COLUMNS)   */}
         {/* =================================================================== */}
-        <div className="lg:col-span-6 sticky top-6 h-[calc(100vh-140px)] bg-[#0B0F17] border border-white/10 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+        <div className="lg:col-span-6 sticky top-6 h-[calc(100vh-160px)] bg-[#0B0F17] rounded-2xl overflow-hidden flex flex-col shadow-2xl border-0">
           
-          {/* BROWSER TOP CHROME BAR */}
-          <div className="h-12 bg-[#0E131F] border-b border-white/10 px-4 flex items-center justify-between shrink-0 select-none z-20">
-            {/* Control dots */}
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]/40" />
-              <span className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]/40" />
-              <span className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]/40" />
-            </div>
-
-            {/* URL path chip with current active page */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-[#131926] border border-white/5 text-[11px] text-[#94A3B8] font-mono max-w-[280px]">
-              <Lock className="w-3 h-3 text-emerald-400 shrink-0" />
-              <span className="truncate text-white/90">
-                saharastaffing.com/{activePageTab === 'home' ? '' : activePageTab}
-              </span>
+          {/* BROWSER TOP CHROME BAR (MINIMAL & ULTRA-CLEAN) */}
+          <div className="h-12 bg-[#0E131F] border-b border-white/5 px-4 flex items-center justify-between shrink-0 select-none z-20">
+            {/* Minimalist URL path tag */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#131926] text-[11px] text-[#94A3B8] font-mono">
+              <Lock className="w-3 h-3 text-[#E69D2B] shrink-0" />
+              <span className="text-white/90 font-medium">saharastaffing.com/preview</span>
               <button
                 type="button"
                 onClick={() => setPreviewKey((k) => k + 1)}
-                className="text-[#64748B] hover:text-white transition-colors ml-auto cursor-pointer"
+                className="text-[#64748B] hover:text-[#E69D2B] transition-colors ml-1 cursor-pointer"
                 title="Reload preview components"
               >
                 <RefreshCw className="w-3 h-3" />
               </button>
             </div>
 
-            {/* Viewport Switcher Pills (Laptop View 1280px | Phone View 375px) */}
-            <div className="flex items-center gap-1 bg-[#131926] p-0.5 rounded-lg border border-white/10">
+            {/* Viewport Switcher Pills (💻 Desktop | 📱 Mobile) */}
+            <div className="flex items-center gap-1 bg-[#131926] p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() => setViewportMode('desktop')}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewportMode === 'desktop'
                     ? 'bg-[#E69D2B] text-[#0B0F17] shadow-sm font-bold'
                     : 'text-[#94A3B8] hover:text-white'
                 }`}
               >
-                <Monitor className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">Laptop View (1280px)</span>
+                <span>💻</span>
+                <span>Desktop</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setViewportMode('mobile')}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewportMode === 'mobile'
                     ? 'bg-[#E69D2B] text-[#0B0F17] shadow-sm font-bold'
                     : 'text-[#94A3B8] hover:text-white'
                 }`}
               >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">Phone View (375px)</span>
+                <span>📱</span>
+                <span>Mobile</span>
               </button>
             </div>
           </div>
 
-          {/* Quick Jump Bar for Home Page */}
-          {activePageTab === 'home' && (
-            <div className="bg-[#0B0F17] px-4 py-1.5 border-b border-white/[0.06] flex items-center gap-1.5 text-[10px] overflow-x-auto no-scrollbar shrink-0 select-none">
-              <span className="text-[#64748B] font-mono uppercase font-semibold mr-1">Jump to:</span>
-              {[
-                { id: '#hero-section', label: 'Hero' },
-                { id: '#metrics-section', label: 'Metrics' },
-                { id: '#capital-section', label: 'Bento' },
-                { id: '#process-story', label: 'Vetting' },
-                { id: '#staffing-momentum', label: 'Estimator' },
-                { id: '#testimonials-section', label: 'Reviews' },
-                { id: '#faq-section', label: 'FAQ' },
-                { id: '#footer-section', label: 'Footer' },
-              ].map((sec) => (
-                <button
-                  key={sec.id}
-                  type="button"
-                  onClick={() => {
-                    const el = previewScrollRef.current?.querySelector(sec.id);
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  className="px-2 py-0.5 rounded bg-white/5 hover:bg-[#E69D2B]/20 text-[#94A3B8] hover:text-[#E69D2B] transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  {sec.label}
-                </button>
-              ))}
-              <div className="ml-auto flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                <span>Live Sync</span>
-              </div>
-            </div>
-          )}
-
-          {/* Settings Indicator Strip when in Global Settings Tab */}
-          {activePageTab === 'settings' && (
-            <div className="bg-[#0B0F17] px-4 py-2 border-b border-white/[0.06] flex items-center justify-between text-[11px] shrink-0">
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-[#E69D2B] font-bold">Live Utility Status:</span>
-                <span className={settings.stickyNavbar ? 'text-emerald-400' : 'text-[#64748B]'}>
-                  ● Sticky Nav {settings.stickyNavbar ? 'ON' : 'OFF'}
-                </span>
-                <span className={settings.enableBackToTop ? 'text-emerald-400' : 'text-[#64748B]'}>
-                  ● Back-to-Top {settings.enableBackToTop ? 'ON' : 'OFF'}
-                </span>
-                <span className={settings.enableCustomCursor ? 'text-emerald-400' : 'text-[#64748B]'}>
-                  ● Cursor {settings.enableCustomCursor ? 'ON' : 'OFF'}
-                </span>
-              </div>
-            </div>
-          )}
-
           {/* SCALED LIVE RENDER CANVAS (SMOOTH OVERFLOW CONTAINER) */}
           <div
             ref={previewScrollRef}
-            className="flex-1 overflow-y-auto custom-scrollbar bg-[#080B12] relative"
+            className="h-full overflow-y-auto scroll-smooth custom-scrollbar bg-[#080B12] relative"
           >
             <CMSPreviewProvider content={draftContent} settings={settings} key={previewKey}>
               {viewportMode === 'desktop' ? (
-                /* LAPTOP / DESKTOP VIEWPORT */
-                <div className="w-full min-h-full bg-[#0B0F17] text-white">
-                  {/* HOME PAGE RENDERING */}
-                  {(activePageTab === 'home' || activePageTab === 'settings') && (
-                    <>
-                      <div id="hero-section">
-                        <Hero />
-                      </div>
-                      <div id="metrics-section">
-                        <SocialProofMarquee />
-                      </div>
-                      <div id="capital-section">
-                        <BentoGrowthCapital />
-                      </div>
-                      <div id="process-story">
-                        <VettingProcess />
-                      </div>
-                      <div id="staffing-momentum">
-                        <Calculator />
-                      </div>
-                      <div id="testimonials-section">
-                        <Testimonials />
-                      </div>
-                      <div id="faq-section">
-                        <FAQ />
-                      </div>
-                      <div id="footer-section">
-                        <SpeakToExperts />
+                /* LAPTOP / DESKTOP VIEWPORT (Scaled 1280px view) */
+                <div className="w-full overflow-x-hidden min-h-full py-4 flex justify-center">
+                  <div className="w-[1280px] origin-top scale-[0.65] sm:scale-[0.75] lg:scale-[0.82] mx-auto shrink-0 bg-[#0B0F17] text-white rounded-xl shadow-2xl overflow-hidden">
+                    {/* HOME PAGE RENDERING */}
+                    {(activePageTab === 'home' || activePageTab === 'settings') && (
+                      <>
+                        <div id="hero-section">
+                          <Hero />
+                        </div>
+                        <div id="metrics-section">
+                          <SocialProofMarquee />
+                        </div>
+                        <div id="capital-section">
+                          <BentoGrowthCapital />
+                        </div>
+                        <div id="process-story">
+                          <VettingProcess />
+                        </div>
+                        <div id="staffing-momentum">
+                          <Calculator />
+                        </div>
+                        <div id="testimonials-section">
+                          <Testimonials />
+                        </div>
+                        <div id="faq-section">
+                          <FAQ />
+                        </div>
+                        <div id="footer-section">
+                          <SpeakToExperts />
+                          <Footer />
+                        </div>
+                      </>
+                    )}
+
+                    {/* ABOUT PAGE RENDERING */}
+                    {activePageTab === 'about' && (
+                      <div className="min-h-full bg-[#0B0F17]">
+                        <Header currentRoute="about" />
+                        <div id="about-hero">
+                          <AboutPage />
+                        </div>
                         <Footer />
                       </div>
-                    </>
-                  )}
+                    )}
 
-                  {/* ABOUT PAGE RENDERING */}
-                  {activePageTab === 'about' && (
-                    <div className="min-h-full bg-[#0B0F17]">
-                      <Header currentRoute="about" />
-                      <div id="about-hero">
-                        <AboutPage />
+                    {/* SERVICES PAGE RENDERING */}
+                    {activePageTab === 'services' && (
+                      <div className="min-h-full bg-[#F8F6F1] text-[#0B0F17]">
+                        <Header currentRoute="services" />
+                        <div id="services-hero">
+                          <ServicesPage />
+                        </div>
+                        <Footer />
                       </div>
-                      <Footer />
-                    </div>
-                  )}
+                    )}
 
-                  {/* SERVICES PAGE RENDERING */}
-                  {activePageTab === 'services' && (
-                    <div className="min-h-full bg-[#F8F6F1] text-[#0B0F17]">
-                      <Header currentRoute="services" />
-                      <div id="services-hero">
-                        <ServicesPage />
+                    {/* CONTACT PAGE RENDERING */}
+                    {activePageTab === 'contact' && (
+                      <div className="min-h-full bg-[#F8F6F1] text-[#0B0F17]">
+                        <Header currentRoute="contact" />
+                        <div id="contact-workspace">
+                          <ContactPage />
+                        </div>
+                        <Footer />
                       </div>
-                      <Footer />
-                    </div>
-                  )}
-
-                  {/* CONTACT PAGE RENDERING */}
-                  {activePageTab === 'contact' && (
-                    <div className="min-h-full bg-[#F8F6F1] text-[#0B0F17]">
-                      <Header currentRoute="contact" />
-                      <div id="contact-workspace">
-                        <ContactPage />
-                      </div>
-                      <Footer />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ) : (
-                /* PHONE VIEWPORT (375PX SCALED FRAME) */
-                <div className="py-6 px-3 flex justify-center items-start min-h-full bg-black/50">
-                  <div className="w-[375px] max-w-full rounded-[40px] border-[8px] border-[#1E293B] bg-[#0B0F17] shadow-2xl overflow-hidden flex flex-col relative text-white">
-                    {/* Top phone speaker bar */}
-                    <div className="w-full h-6 bg-[#0B0F17] flex justify-center items-center shrink-0 border-b border-white/[0.04]">
+                /* PHONE VIEWPORT (Centered 375px phone chassis) */
+                <div className="w-full min-h-full flex justify-center items-center py-6 px-3">
+                  <div
+                    ref={mobileChassisRef}
+                    className="w-[375px] h-[720px] mx-auto rounded-[36px] border-4 border-[#1E293B] overflow-y-auto shadow-2xl my-auto bg-[#0B0F17] custom-scrollbar text-white relative flex flex-col"
+                  >
+                    {/* Top phone speaker notch */}
+                    <div className="sticky top-0 z-30 w-full h-6 bg-[#0B0F17]/95 backdrop-blur-sm flex justify-center items-center shrink-0 border-b border-white/5">
                       <div className="w-20 h-3 bg-[#1E293B] rounded-full" />
                     </div>
 
-                    <div className="w-full overflow-y-auto custom-scrollbar">
+                    <div className="w-full flex-1">
                       {(activePageTab === 'home' || activePageTab === 'settings') && (
                         <>
                           <div id="hero-section"><Hero /></div>
@@ -2428,7 +2374,7 @@ export default function CMSWorkspace() {
                       {activePageTab === 'about' && (
                         <div>
                           <Header currentRoute="about" />
-                          <AboutPage />
+                          <div id="about-hero"><AboutPage /></div>
                           <Footer />
                         </div>
                       )}
