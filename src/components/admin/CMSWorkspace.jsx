@@ -280,6 +280,9 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
   const [stageWidth, setStageWidth] = useState(1100);
   const [contentHeight, setContentHeight] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [previewKey, setPreviewKey] = useState(0);
+  const [dragOverKey, setDragOverKey] = useState(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null);
 
   // Track Center Stage width for dynamic 1440px desktop scaling math
   useEffect(() => {
@@ -468,15 +471,6 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
       default: return 'Section Settings';
     }
   };
-
-  // Preview reload key to force re-render when clicking browser refresh
-  const [previewKey, setPreviewKey] = useState(0);
-
-  // Drag over states for file dropzones
-  const [dragOverKey, setDragOverKey] = useState(null);
-
-  // Confirm delete modal state
-  const [deleteConfirmation, setDeleteConfirmation] = useState(null);
 
   // Scroll to top of preview when switching page tabs
   useEffect(() => {
