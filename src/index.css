@@ -1,0 +1,249 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================================================= */
+/* LENIS SMOOTH SCROLL STYLING                                               */
+/* ========================================================================= */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* ========================================================================= */
+/* BASE STYLES                                                               */
+/* ========================================================================= */
+body {
+  background-color: #ffffff;
+  color: #0b0f17;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========================================================================= */
+/* SCROLL REVEAL WORDS                                                       */
+/* ========================================================================= */
+.reveal-word {
+  display: inline-block;
+  opacity: 0.18;
+  transition: opacity 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  will-change: opacity, transform;
+}
+
+.reveal-word.active {
+  opacity: 1;
+}
+
+/* ========================================================================= */
+/* KEYFRAME ANIMATIONS: MARQUEE & FLOATING TAGS                              */
+/* ========================================================================= */
+@keyframes marqueeScroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marqueeScroll 28s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes floatTagsLeft {
+  0%, 100% {
+    transform: translateX(0px);
+  }
+  50% {
+    transform: translateX(-18px);
+  }
+}
+
+@keyframes floatTagsRight {
+  0%, 100% {
+    transform: translateX(-12px);
+  }
+  50% {
+    transform: translateX(10px);
+  }
+}
+
+.float-row-1 {
+  animation: floatTagsLeft 7s ease-in-out infinite;
+  will-change: transform;
+}
+
+.float-row-2 {
+  animation: floatTagsRight 8s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Ambient Breathing Glow */
+@keyframes ambientBreathe {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.08);
+  }
+}
+
+.animate-breathe {
+  animation: ambientBreathe 6s ease-in-out infinite;
+}
+
+/* Subtle badge pulse */
+@keyframes pulseSubtle {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(230, 157, 43, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(230, 157, 43, 0);
+  }
+}
+
+.pulse-badge {
+  animation: pulseSubtle 2.5s infinite;
+}
+
+/* Shimmer shine animation on buttons */
+@keyframes shineSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.btn-shimmer:hover::after {
+  transform: translateX(100%);
+}
+
+/* ========================================================================= */
+/* CUSTOM RANGE SLIDER                                                       */
+/* ========================================================================= */
+.sahara-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 7px;
+  background: rgba(11, 15, 23, 0.2);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sahara-slider:hover {
+  background: rgba(11, 15, 23, 0.28);
+}
+
+.sahara-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 24px;
+  border-radius: 4px;
+  background: #0b0f17;
+  cursor: grab;
+  border: 2px solid #e69d2b;
+  box-shadow: 0 3px 12px rgba(11, 15, 23, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sahara-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px rgba(230, 157, 43, 0.5);
+}
+
+.sahara-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+
+.sahara-slider::-moz-range-thumb {
+  width: 18px;
+  height: 24px;
+  border-radius: 4px;
+  background: #0b0f17;
+  cursor: grab;
+  border: 2px solid #e69d2b;
+  box-shadow: 0 3px 12px rgba(11, 15, 23, 0.4);
+}
+
+/* ========================================================================= */
+/* PREMIUM SCROLLBAR & HELPERS                                               */
+/* ========================================================================= */
+::-webkit-scrollbar {
+  width: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0f17;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #e69d2b;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
