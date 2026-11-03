@@ -472,7 +472,7 @@ export default function ServicesPage({ onNavigateContact, onNavigate }) {
       {/* ===================================================================== */}
       {/* CHAPTER ONE: HERO INTRODUCTION (Warm Cream #F8F6F1)                   */}
       {/* ===================================================================== */}
-      <section className="relative w-full pt-32 sm:pt-40 lg:pt-44 pb-20 sm:pb-28 lg:pb-32 px-6 sm:px-10 lg:px-16 border-b border-[#E7E3D9]">
+      <section id="services-hero" className="relative w-full pt-32 sm:pt-40 lg:pt-44 pb-20 sm:pb-28 lg:pb-32 px-6 sm:px-10 lg:px-16 border-b border-[#E7E3D9]">
         <div className="max-w-[1360px] mx-auto">
           {/* Eyebrow */}
           <motion.div
@@ -546,7 +546,7 @@ export default function ServicesPage({ onNavigateContact, onNavigate }) {
       {/* ===================================================================== */}
       {/* CHAPTER 01: PERMANENT PLACEMENT (Deep Obsidian #0B0F17)              */}
       {/* ===================================================================== */}
-      <section className="relative w-full bg-[#0B0F17] text-white py-14 sm:py-28 lg:py-36 px-5 sm:px-10 lg:px-16 selection:bg-[#E69D2B] selection:text-[#0B0F17]">
+      <section id="services-capabilities" className="relative w-full bg-[#0B0F17] text-white py-14 sm:py-28 lg:py-36 px-5 sm:px-10 lg:px-16 selection:bg-[#E69D2B] selection:text-[#0B0F17]">
         <div className="max-w-[1360px] mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
             {/* Left: Typography & Generous Negative Space */}
@@ -632,7 +632,7 @@ export default function ServicesPage({ onNavigateContact, onNavigate }) {
       {/* ===================================================================== */}
       {/* CHAPTER 02: CONTRACT & TEMPORARY STAFFING (Warm Cream #F8F6F1)       */}
       {/* ===================================================================== */}
-      <section className="relative w-full bg-[#F8F6F1] text-[#0B0F17] py-14 sm:py-28 lg:py-36 px-5 sm:px-10 lg:px-16 border-y border-[#E7E3D9]">
+      <section id="services-vetting" className="relative w-full bg-[#F8F6F1] text-[#0B0F17] py-14 sm:py-28 lg:py-36 px-5 sm:px-10 lg:px-16 border-y border-[#E7E3D9]">
         <div className="max-w-[1360px] mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
             {/* Left: Asymmetric Photograph on the Left (Reveal 2: Horizontal Editorial Aperture) */}
@@ -718,7 +718,7 @@ export default function ServicesPage({ onNavigateContact, onNavigate }) {
       {/* ===================================================================== */}
       {/* CHAPTER 03: PROFESSIONAL & EXECUTIVE SEARCH (Deep Obsidian #0B0F17)  */}
       {/* ===================================================================== */}
-      <section className="relative w-full bg-[#0B0F17] text-white py-14 sm:py-28 lg:py-36 px-5 sm:px-10 lg:px-16 selection:bg-[#E69D2B] selection:text-[#0B0F17]">
+      <section id="services-models" className="relative w-full bg-[#0B0F17] text-white py-14 sm:py-28 lg:py-36 px-5 sm:px-10 lg:px-16 selection:bg-[#E69D2B] selection:text-[#0B0F17]">
         <div className="max-w-[1360px] mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
             {/* Left: Culminating Typography */}
@@ -812,7 +812,7 @@ export default function ServicesPage({ onNavigateContact, onNavigate }) {
       {/* ===================================================================== */}
       {/* CHAPTER FOUR: CLOSING CALL TO ACTION (Luminous Golden Gradient)      */}
       {/* ===================================================================== */}
-      <section className="relative w-full py-16 sm:py-36 lg:py-40 px-5 sm:px-10 lg:px-16 overflow-hidden bg-gradient-to-b from-[#FAF9F6] via-white to-[#FCEFD2] text-center border-t border-[#DDD7CC] selection:bg-[#E69D2B] selection:text-[#0B0F17]">
+      <section id="services-sla" className="relative w-full py-16 sm:py-36 lg:py-40 px-5 sm:px-10 lg:px-16 overflow-hidden bg-gradient-to-b from-[#FAF9F6] via-white to-[#FCEFD2] text-center border-t border-[#DDD7CC] selection:bg-[#E69D2B] selection:text-[#0B0F17]">
         {/* Ambient Breathing Warm Gold Glow Layers (Identical to Home CTA Section) */}
         <div className="animate-breathe absolute bottom-0 inset-x-0 h-[640px] bg-gradient-to-t from-saharaGold/35 via-saharaGold/15 to-transparent pointer-events-none" />
         <div className="absolute -bottom-24 inset-x-0 h-80 bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(230,157,43,0.38),transparent_70%)] pointer-events-none" />

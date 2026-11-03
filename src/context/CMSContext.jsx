@@ -207,30 +207,39 @@ export const INITIAL_CMS_CONTENT = {
         desc: 'We focus on relevant professional connections and alignment between people and roles.',
       },
     ],
+    chaptersLayout: 'sticky',
     chapters: [
       {
         id: '01',
         badge: 'CHAPTER 01',
-        title: 'Understand the people',
-        text: 'Every staffing conversation begins with listening and learning about the needs behind the role.',
-        image: '/assets/female-executive-beige.jpg',
-        tag: 'Active Discovery',
+        title: 'Understand the people (Technology)',
+        text: 'Every staffing conversation begins with listening and learning about the architectural stack and engineering leadership needs behind the role.',
+        image: '/assets/card1-female-clean.jpg',
+        tag: 'Technology & AI',
       },
       {
         id: '02',
         badge: 'CHAPTER 02',
-        title: 'See the bigger picture',
-        text: 'Business priorities, professional experience, and team needs all contribute to a more informed conversation.',
+        title: 'See the bigger picture (Finance)',
+        text: 'Business priorities, compensation benchmarks, and balance sheet velocity contribute to informed executive search and capital allocation.',
         image: '/assets/card2-talent.jpg',
-        tag: 'Context & Perspective',
+        tag: 'Strategic Finance',
       },
       {
         id: '03',
         badge: 'CHAPTER 03',
-        title: 'Focus on the connection',
-        text: 'The goal is to help businesses and professionals move toward a connection that makes sense for both.',
+        title: 'Focus on the connection (Operations)',
+        text: 'Operational agility, team bandwidth, and scalable systems guide our precision talent placement for rapid enterprise momentum.',
         image: '/assets/card3-workforce.jpg',
-        tag: 'Enduring Partnerships',
+        tag: 'Operations & Scale',
+      },
+      {
+        id: '04',
+        badge: 'CHAPTER 04',
+        title: 'Lead with certainty (Leadership)',
+        text: 'Board-level governance, high-integrity vetting, and executive placement engineered for enduring valuation acceleration.',
+        image: '/assets/talent-ai.jpg',
+        tag: 'Executive Leadership',
       },
     ],
     leadership: [
@@ -265,6 +274,7 @@ export const INITIAL_CMS_CONTENT = {
     finalCta: {
       headline: 'Let’s find the right people for your team.',
       subtitle: 'From exploratory conversations to immediate mission-critical hires, Sahara is your retained search partner.',
+      backgroundImage: '/assets/card1-staffing.jpg',
       buttons: [
         {
           id: 'btn-about-cta-1',

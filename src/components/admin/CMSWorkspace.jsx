@@ -203,6 +203,43 @@ function MobilePreviewIframe({ children }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// SECTION PILLS CONFIGURATION (FOR BOTTOM QUICK-JUMP BAR)
+// ---------------------------------------------------------------------------
+const SECTION_PILLS = {
+  home: [
+    { id: 'home-block-01', num: '01', label: 'Hero', anchor: '#hero-section' },
+    { id: 'home-block-02', num: '02', label: 'Partners & Metrics', anchor: '#metrics-section' },
+    { id: 'home-block-03', num: '03', label: 'Bento Solutions', anchor: '#capital-section' },
+    { id: 'home-block-04', num: '04', label: 'Kinetic Pipeline', anchor: '#process-story' },
+    { id: 'home-block-05', num: '05', label: 'Hiring Estimator', anchor: '#staffing-momentum' },
+    { id: 'home-block-06', num: '06', label: 'Testimonials', anchor: '#testimonials-section' },
+    { id: 'home-block-07', num: '07', label: 'FAQ', anchor: '#faq-section' },
+    { id: 'home-block-08', num: '08', label: 'CTA & Footer', anchor: '#footer-section' },
+  ],
+  about: [
+    { id: 'about-block-01', num: '01', label: 'About Hero', anchor: '#about-hero' },
+    { id: 'about-block-02', num: '02', label: 'Benchmarks', anchor: '#about-benchmarks' },
+    { id: 'about-block-03', num: '03', label: 'Discipline Matrix', anchor: '#about-mindset' },
+    { id: 'about-block-04', num: '04', label: 'Leadership', anchor: '#about-leadership' },
+    { id: 'about-block-05', num: '05', label: 'Scale Stats', anchor: '#about-stats' },
+    { id: 'about-block-06', num: '06', label: 'Final CTA', anchor: '#about-final-cta' },
+  ],
+  services: [
+    { id: 'services-block-01', num: '01', label: 'Services Hero', anchor: '#services-hero' },
+    { id: 'services-block-02', num: '02', label: 'Capabilities', anchor: '#services-capabilities' },
+    { id: 'services-block-03', num: '03', label: 'Vetting', anchor: '#services-vetting' },
+    { id: 'services-block-04', num: '04', label: 'Engagement', anchor: '#services-models' },
+    { id: 'services-block-05', num: '05', label: 'SLA Guarantee', anchor: '#services-sla' },
+  ],
+  contact: [
+    { id: 'contact-block-01', num: '01', label: 'Contact Intake', anchor: '#contact-workspace' },
+  ],
+  settings: [
+    { id: 'global-settings', num: '⚙️', label: 'Site Utilities', anchor: '#global-settings' },
+  ],
+};
+
 export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
   const {
     draftContent,
@@ -229,11 +266,63 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
   // Active focused section block (for outline highlight in preview canvas)
   const [activeBlock, setActiveBlock] = useState('home-block-01');
 
-  // Right Slide-Over Block Editor Drawer state
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  // Right Section Block Editor Drawer state (docked open by default on desktop)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
 
-  // Preview viewport mode: 'desktop' (True 100% scale) | 'mobile' (Phone 375px)
+  // Preview viewport mode: 'desktop' (True 1440px Scaled) | 'mobile' (Phone 375px)
   const [viewportMode, setViewportMode] = useState('desktop');
+
+  // Center Stage & Preview Sizing Refs
+  const stageRef = useRef(null);
+  const previewScrollRef = useRef(null);
+  const contentRef = useRef(null);
+  const drawerScrollRef = useRef(null);
+  const [stageWidth, setStageWidth] = useState(1100);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Track Center Stage width for dynamic 1440px desktop scaling math
+  useEffect(() => {
+    if (!stageRef.current) return;
+    const updateWidth = () => {
+      if (stageRef.current) {
+        setStageWidth(stageRef.current.clientWidth);
+      }
+    };
+    updateWidth();
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setStageWidth(entry.contentRect.width);
+        }
+      }
+    });
+    ro.observe(stageRef.current);
+    return () => ro.disconnect();
+  }, [isDrawerOpen]);
+
+  // Scaled desktop math: Fits true 1440px desktop frame neatly into stage
+  const desktopScale = Math.min(1, Math.max(0.42, (stageWidth - 36) / 1440));
+
+  // Track rendered content height
+  useEffect(() => {
+    if (!contentRef.current) return;
+    const updateHeight = () => {
+      if (contentRef.current) {
+        setContentHeight(contentRef.current.scrollHeight || contentRef.current.offsetHeight);
+      }
+    };
+    updateHeight();
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.height > 0) {
+          setContentHeight(entry.contentRect.height);
+        }
+      }
+    });
+    ro.observe(contentRef.current);
+    return () => ro.disconnect();
+  }, [activePageTab, previewKey, draftContent]);
 
   const isBlockExpanded = (blockId) => expandedBlocks.has(blockId);
 
@@ -285,20 +374,53 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
     setExpandedBlocks(new Set());
   };
 
+  // Smooth scroll center preview canvas to element anchor with transform math
   const scrollToPreviewAnchor = (domAnchorId) => {
-    if (!domAnchorId) return;
+    if (!domAnchorId || !previewScrollRef.current) return;
     setTimeout(() => {
-      const targetContainer = previewScrollRef.current;
-      const el = targetContainer?.querySelector(domAnchorId) || document.querySelector(domAnchorId);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 60);
+      try {
+        const container = previewScrollRef.current;
+        const el = container.querySelector(domAnchorId);
+        if (el) {
+          const containerRect = container.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          const delta = elRect.top - containerRect.top;
+          const targetScrollTop = container.scrollTop + delta - 20;
+          container.scrollTo({
+            top: Math.max(0, targetScrollTop),
+            behavior: 'smooth',
+          });
+        }
+      } catch (err) {
+        console.warn('Scroll anchor calculation error:', err);
+      }
+    }, 80);
   };
 
   const openBlockDrawer = (blockId, domAnchorId) => {
     setActiveBlock(blockId);
     setExpandedBlocks((prev) => new Set(prev).add(blockId));
-    setIsDrawerOpen(true);
+    if (!isDrawerOpen) setIsDrawerOpen(true);
     scrollToPreviewAnchor(domAnchorId);
+    setTimeout(() => {
+      const editorEl = document.getElementById(`editor-${blockId}`);
+      if (editorEl) {
+        editorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 100);
+  };
+
+  const handlePillClick = (pill) => {
+    setActiveBlock(pill.id);
+    setExpandedBlocks((prev) => new Set(prev).add(pill.id));
+    if (!isDrawerOpen) setIsDrawerOpen(true);
+    scrollToPreviewAnchor(pill.anchor);
+    setTimeout(() => {
+      const editorEl = document.getElementById(`editor-${pill.id}`);
+      if (editorEl) {
+        editorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 100);
   };
 
   const handleBlockToggle = (blockId, domAnchorId) => {
@@ -355,9 +477,6 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
 
   // Confirm delete modal state
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
-
-  // Ref to the live preview container for smooth section jumping
-  const previewScrollRef = useRef(null);
 
   // Scroll to top of preview when switching page tabs
   useEffect(() => {
@@ -1029,123 +1148,204 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
       </header>
 
       {/* ===================================================================== */}
-      {/* 2. FULL-CANVAS VISUAL PREVIEW STAGE (100% REAL DIMENSIONS)            */}
+      {/* 2. MAIN 4-ZONE STAGE: ZONE B (CENTER STAGE) + ZONE C (RIGHT DRAWER)   */}
       {/* ===================================================================== */}
-      <div
-        ref={previewScrollRef}
-        data-lenis-prevent
-        className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain scroll-smooth custom-scrollbar bg-[#0B0F17] relative pt-2"
-        style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
-      >
-        <CMSPreviewProvider content={draftContent} settings={settings} key={previewKey}>
-          {viewportMode === 'desktop' ? (
-            /* DESKTOP MODE (TRUE 1:1 REAL DIMENSIONS, 100% NATURAL BROWSER SCROLL) */
-            <div className="w-full min-h-full">
-              {renderPreviewContent()}
-            </div>
-          ) : (
-            /* MOBILE PHONE CHASSIS (AUTHENTIC 375PX IFRAME VIEWPORT) */
-            <div className="py-8 px-4 flex justify-center items-start min-h-full bg-black/50">
-              <div
-                className="w-[390px] h-[812px] max-h-[calc(100vh-140px)] mx-auto rounded-[48px] border-[10px] border-[#1E293B] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.1)] bg-[#0B0F17] relative flex flex-col overflow-hidden"
+      <div className="flex-1 min-h-0 w-full flex overflow-hidden relative">
+        {/* =================================================================== */}
+        {/* ZONE B: CENTER STAGE (SCALED TRUE-DESKTOP PREVIEW CANVAS)            */}
+        {/* =================================================================== */}
+        <div
+          ref={stageRef}
+          className="flex-1 h-full min-h-0 flex flex-col relative overflow-hidden bg-[#070A10]"
+        >
+          {/* Top Browser Chrome Bar */}
+          <div className="h-10 px-4 bg-[#0E131F] border-b border-white/10 flex items-center justify-between gap-3 shrink-0 select-none">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]/80 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]/80 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]/80 inline-block" />
+              </div>
+              <div className="h-4 w-[1px] bg-white/10 mx-1" />
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#131926] border border-white/5 text-[11px] font-mono text-[#94A3B8]">
+                <Lock className="w-3 h-3 text-emerald-400 shrink-0" />
+                <span className="text-white/60">saharastaffing.com</span>
+                <span className="text-[#E69D2B] font-semibold">
+                  {activePageTab === 'home' ? '/preview' : `/preview/${activePageTab}`}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRefreshing(true);
+                  setPreviewKey((k) => k + 1);
+                  setTimeout(() => setIsRefreshing(false), 400);
+                }}
+                className="p-1 rounded hover:bg-white/5 text-[#94A3B8] hover:text-white transition-colors cursor-pointer"
+                title="Reload Preview Canvas"
               >
-                {/* Dynamic Island Notch */}
-                <div className="absolute top-2.5 inset-x-0 z-30 flex justify-center pointer-events-none">
-                  <div className="w-24 h-4 bg-[#0B0F17] border border-white/10 rounded-full flex items-center justify-center gap-1.5 shadow-md">
-                    <div className="w-2 h-2 rounded-full bg-[#1E293B]" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#131926] border border-white/5" />
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#E69D2B]' : ''}`} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono font-semibold text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>SYNCHRONIZED</span>
+              </div>
+              <span className="text-[10px] font-mono text-white/40 hidden md:inline">
+                {viewportMode === 'desktop'
+                  ? `Scale: ${Math.round(desktopScale * 100)}% (1440px True Canvas)`
+                  : '375px Mobile Frame'}
+              </span>
+            </div>
+          </div>
+
+          {/* Independent Vertical Scroll Viewport */}
+          <div
+            ref={previewScrollRef}
+            data-lenis-prevent
+            className="flex-1 h-full overflow-y-auto overflow-x-hidden overscroll-contain relative custom-scrollbar p-3 sm:p-5"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: '#E69D2B #131926' }}
+          >
+            <CMSPreviewProvider content={draftContent} settings={settings} key={previewKey}>
+              {viewportMode === 'desktop' ? (
+                /* SCALED TRUE-DESKTOP PREVIEW (1440px True Dimensions) */
+                <div
+                  className="mx-auto relative"
+                  style={{
+                    width: `${1440 * desktopScale}px`,
+                    height: contentHeight > 0 ? `${contentHeight * desktopScale + 80}px` : 'auto',
+                    minHeight: '100%',
+                  }}
+                >
+                  <div
+                    ref={contentRef}
+                    style={{
+                      width: '1440px',
+                      transform: `scale(${desktopScale})`,
+                      transformOrigin: 'top left',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      boxShadow: '0 25px 60px -15px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.08)',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      backgroundColor: '#0B0F17',
+                    }}
+                  >
+                    {renderPreviewContent()}
                   </div>
                 </div>
-
-                {/* Mobile Viewport Iframe Portal */}
-                <div className="w-full h-full flex-1 pt-1 pb-1">
-                  <MobilePreviewIframe>
-                    <CMSPreviewProvider content={draftContent} settings={settings}>
-                      {renderPreviewContent()}
-                    </CMSPreviewProvider>
-                  </MobilePreviewIframe>
+              ) : (
+                /* AUTHENTIC 375PX MOBILE PHONE CHASSIS */
+                <div className="py-6 px-4 flex justify-center items-start min-h-full">
+                  <div className="w-[390px] h-[812px] max-h-[calc(100vh-170px)] mx-auto rounded-[48px] border-[10px] border-[#1E293B] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.1)] bg-[#0B0F17] relative flex flex-col overflow-hidden">
+                    <div className="absolute top-2.5 inset-x-0 z-30 flex justify-center pointer-events-none">
+                      <div className="w-24 h-4 bg-[#0B0F17] border border-white/10 rounded-full flex items-center justify-center gap-1.5 shadow-md">
+                        <div className="w-2 h-2 rounded-full bg-[#1E293B]" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#131926] border border-white/5" />
+                      </div>
+                    </div>
+                    <div className="w-full h-full flex-1 pt-1 pb-1">
+                      <MobilePreviewIframe>
+                        <CMSPreviewProvider content={draftContent} settings={settings}>
+                          {renderPreviewContent()}
+                        </CMSPreviewProvider>
+                      </MobilePreviewIframe>
+                    </div>
+                    <div className="absolute bottom-1.5 inset-x-0 z-30 flex justify-center pointer-events-none">
+                      <div className="w-32 h-1 bg-white/30 rounded-full" />
+                    </div>
+                  </div>
                 </div>
+              )}
+            </CMSPreviewProvider>
+          </div>
 
-                {/* Home Indicator Bar */}
-                <div className="absolute bottom-1.5 inset-x-0 z-30 flex justify-center pointer-events-none">
-                  <div className="w-32 h-1 bg-white/30 rounded-full" />
-                </div>
+          {/* ================================================================= */}
+          {/* ZONE D: BOTTOM FLOATING SECTION PILLS BAR                          */}
+          {/* ================================================================= */}
+          <div className="absolute bottom-4 inset-x-0 z-30 flex justify-center pointer-events-none px-4">
+            <div className="pointer-events-auto bg-[#0E131F]/90 backdrop-blur-xl border border-white/15 rounded-full px-3 py-1.5 shadow-2xl flex items-center gap-1.5 max-w-[95vw] overflow-x-auto no-scrollbar">
+              {(SECTION_PILLS[activePageTab] || []).map((pill) => {
+                const isCurrent = activeBlock === pill.id;
+                return (
+                  <button
+                    key={pill.id}
+                    type="button"
+                    onClick={() => handlePillClick(pill)}
+                    className={`px-3 py-1 rounded-full text-xs font-mono font-medium flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                      isCurrent
+                        ? 'bg-[#E69D2B] text-[#0B0F17] font-bold shadow-md'
+                        : 'text-[#94A3B8] hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <span className={`text-[10px] ${isCurrent ? 'text-[#0B0F17]' : 'text-[#E69D2B]'}`}>
+                      {pill.num}
+                    </span>
+                    <span>{pill.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* =================================================================== */}
+        {/* ZONE C: DOCKED RIGHT SECTION BLOCK EDITOR DRAWER                    */}
+        {/* =================================================================== */}
+        <aside
+          data-lenis-prevent
+          className={`${
+            isDrawerOpen ? 'w-full sm:w-[380px] lg:w-[410px]' : 'w-0 hidden'
+          } shrink-0 h-full bg-[#0B0F17] border-l border-white/10 flex flex-col z-20 transition-all duration-300 relative`}
+        >
+          {/* Drawer Header */}
+          <div className="p-3.5 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#0E131F]/90">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#E69D2B] animate-pulse" />
+              <div>
+                <span className="text-[10px] font-mono text-[#E69D2B] uppercase tracking-wider font-semibold block">
+                  Section Block Editor
+                </span>
+                <h2 className="text-xs font-bold text-white font-sans capitalize">
+                  {activePageTab} Page ({getBlocksForPage(activePageTab).length} Blocks)
+                </h2>
               </div>
             </div>
-          )}
-        </CMSPreviewProvider>
-      </div>
 
-      {/* ===================================================================== */}
-      {/* 3. RIGHT SLIDE-OVER BLOCK EDITOR DRAWER (<AnimatePresence>)           */}
-      {/* ===================================================================== */}
-      <AnimatePresence>
-        {isDrawerOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsDrawerOpen(false)}
-              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]"
-            />
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={expandAllBlocks}
+                className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[10px] text-[#94A3B8] hover:text-white transition-colors cursor-pointer font-mono"
+                title="Expand all section blocks"
+              >
+                Expand
+              </button>
+              <button
+                type="button"
+                onClick={collapseAllBlocks}
+                className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[10px] text-[#94A3B8] hover:text-white transition-colors cursor-pointer font-mono"
+                title="Collapse all section blocks"
+              >
+                Collapse
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDrawerOpen(false)}
+                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-[#94A3B8] hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                title="Hide Editor Panel"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
 
-            {/* Slide-over Drawer Panel */}
-            <motion.aside
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              onClick={(e) => e.stopPropagation()}
-              data-lenis-prevent
-              className="w-[460px] max-w-[95vw] h-full fixed right-0 top-0 z-50 bg-[#0B0F17]/95 backdrop-blur-2xl border-l border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.85)] flex flex-col"
-            >
-              {/* Drawer Header */}
-              <div className="p-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#0E131F]/90">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#E69D2B] animate-pulse" />
-                  <div>
-                    <span className="text-[10px] font-mono text-[#E69D2B] uppercase tracking-wider font-semibold block">
-                      Section Editor Drawer
-                    </span>
-                    <h2 className="text-sm font-bold text-white font-sans truncate max-w-[180px] sm:max-w-[240px]">
-                      {getBlockTitle(activeBlock)}
-                    </h2>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={expandAllBlocks}
-                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[10px] text-[#94A3B8] hover:text-white transition-colors cursor-pointer font-mono"
-                    title="Expand all section blocks"
-                  >
-                    Expand All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={collapseAllBlocks}
-                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[10px] text-[#94A3B8] hover:text-white transition-colors cursor-pointer font-mono"
-                    title="Collapse all section blocks"
-                  >
-                    Collapse All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsDrawerOpen(false)}
-                    className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-[#94A3B8] hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-                    title="Close Drawer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Drawer Quick Section Switcher */}
-              <div className="px-5 pt-3 pb-2 border-b border-white/5 bg-[#0B0F17]/60 shrink-0">
-                <label className="text-[9.5px] font-mono text-[#64748B] uppercase tracking-wider mb-1 block">
+          {/* Drawer Quick Section Switcher */}
+          <div className="px-5 pt-3 pb-2 border-b border-white/5 bg-[#0B0F17]/60 shrink-0">
+            <label className="text-[9.5px] font-mono text-[#64748B] uppercase tracking-wider mb-1 block">
                   Quick Switch Block:
                 </label>
                 <select
@@ -2202,7 +2402,7 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
               </div>
 
               {/* BLOCK 03: DISCIPLINE MATRIX */}
-              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
+              <div id="editor-about-block-03" className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg scroll-mt-4">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('about-block-03', '#about-mindset')}
@@ -2222,6 +2422,37 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
 
                 {isBlockExpanded('about-block-03') && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5 text-xs">
+                    {/* Block 03 Layout Switcher Engine */}
+                    <div className="p-3 rounded-xl bg-[#131926] border border-[#1E293B] space-y-2">
+                      <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase font-mono">
+                        Mindset Narrative Layout Engine
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 bg-[#0B0F17] p-1 rounded-lg border border-white/10">
+                        <button
+                          type="button"
+                          onClick={() => updateDraft('about.chaptersLayout', 'sticky')}
+                          className={`px-2 py-1.5 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            (draftContent.about?.chaptersLayout || 'sticky') === 'sticky'
+                              ? 'bg-[#E69D2B] text-[#0B0F17] font-bold shadow'
+                              : 'text-[#94A3B8] hover:text-white'
+                          }`}
+                        >
+                          <span>⚡ Sticky Hijack</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateDraft('about.chaptersLayout', 'grid')}
+                          className={`px-2 py-1.5 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            draftContent.about?.chaptersLayout === 'grid'
+                              ? 'bg-[#E69D2B] text-[#0B0F17] font-bold shadow'
+                              : 'text-[#94A3B8] hover:text-white'
+                          }`}
+                        >
+                          <span>📇 Static Cards</span>
+                        </button>
+                      </div>
+                    </div>
+
                     {(draftContent.about?.chapters || []).map((ch, idx) => (
                       <div key={idx} className="p-3.5 rounded-xl bg-[#131926] border border-[#1E293B] space-y-2.5">
                         <div className="flex items-center justify-between">
@@ -2249,7 +2480,7 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                           className="w-full px-2 py-1 rounded bg-[#0E131F] border border-[#1E293B] text-white"
                         />
                         {renderImageDropzone({
-                          title: `${ch.badge} Image`,
+                          title: `${ch.badge} (${ch.tag}) Imagery`,
                           currentValue: ch.image,
                           fieldKey: `about-ch-${idx}`,
                           onUpdate: (newUrl) => {
@@ -2265,7 +2496,7 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
               </div>
 
               {/* BLOCK 04: LEADERSHIP COUNCIL */}
-              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
+              <div id="editor-about-block-04" className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg scroll-mt-4">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('about-block-04', '#about-leadership')}
@@ -2320,7 +2551,7 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                           className="w-full px-2 py-1 rounded bg-[#0E131F] border border-[#1E293B] text-white"
                         />
                         {renderImageDropzone({
-                          title: `${lead.name} Portrait`,
+                          title: `${lead.name} Headshot Portrait`,
                           currentValue: lead.image,
                           fieldKey: `lead-about-${idx}`,
                           onUpdate: (newUrl) => {
@@ -2336,7 +2567,7 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
               </div>
 
               {/* BLOCK 05: HARD SCALE STATS */}
-              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
+              <div id="editor-about-block-05" className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg scroll-mt-4">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('about-block-05', '#about-stats')}
@@ -2385,7 +2616,7 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
               </div>
 
               {/* BLOCK 06: FINAL CTA */}
-              <div className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg">
+              <div id="editor-about-block-06" className="bg-[#1E293B]/60 rounded-2xl p-5 mb-4 border-0 shadow-lg scroll-mt-4">
                 <button
                   type="button"
                   onClick={() => handleBlockToggle('about-block-06', '#about-final-cta')}
@@ -2414,6 +2645,33 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                         className="w-full px-2.5 py-1.5 rounded bg-[#131926] border border-[#1E293B] text-white"
                       />
                     </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-[#94A3B8] uppercase mb-1 font-mono">Closing Subtitle</label>
+                      <textarea
+                        rows={2}
+                        value={draftContent.about?.finalCta?.subtitle || "Tell us about your business and your hiring needs. Let's start a conversation."}
+                        onChange={(e) => updateDraft('about.finalCta', { ...draftContent.about?.finalCta, subtitle: e.target.value })}
+                        className="w-full px-2.5 py-1.5 rounded bg-[#131926] border border-[#1E293B] text-white"
+                      />
+                    </div>
+                    {renderImageDropzone({
+                      title: 'Final CTA Background Image Override',
+                      currentValue: draftContent.about?.finalCta?.backgroundImage || '/assets/card1-staffing.jpg',
+                      defaultValue: '/assets/card1-staffing.jpg',
+                      fieldKey: 'about-final-cta-bg',
+                      onReset: () => {
+                        updateDraft('about.finalCta', {
+                          ...draftContent.about?.finalCta,
+                          backgroundImage: '/assets/card1-staffing.jpg',
+                        });
+                      },
+                      onUpdate: (newUrl) => {
+                        updateDraft('about.finalCta', {
+                          ...draftContent.about?.finalCta,
+                          backgroundImage: newUrl,
+                        });
+                      },
+                    })}
                     {renderStrictButtonManager({
                       buttons: draftContent.about?.finalCta?.buttons || [],
                       sectionName: 'About Closing CTA',
@@ -2422,7 +2680,7 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
                         if (current.length >= 2) return;
                         updateDraft('about.finalCta', {
                           ...draftContent.about?.finalCta,
-                          buttons: [...current, { id: 'cta-' + Date.now(), enabled: true, label: 'Start the Conversation →', destination: '/contact', variant: 'primary' }],
+                          buttons: [...current, { id: 'cta-' + Date.now(), enabled: true, label: 'Discuss Your Hiring Needs →', destination: '/contact', variant: 'primary' }],
                         });
                       },
                       onRemove: (idx) => updateDraft('about.finalCta', { ...draftContent.about?.finalCta, buttons: (draftContent.about?.finalCta?.buttons || []).filter((_, i) => i !== idx) }),
@@ -2839,35 +3097,33 @@ export default function CMSWorkspace({ onToggleSidebar, sidebarCollapsed }) {
 
               </div>
 
-              {/* Drawer Footer Actions */}
-              <div className="p-4 border-t border-white/10 bg-[#0E131F]/90 shrink-0 flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsDrawerOpen(false)}
-                  className="text-xs text-[#94A3B8] hover:text-white py-2 px-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
-                >
-                  Done Editing
-                </button>
-                <button
-                  type="button"
-                  onClick={publishChanges}
-                  disabled={publishStatus === 'saving' || !hasUnsavedChanges}
-                  className="bg-[#E69D2B] text-[#0B0F17] font-bold px-5 py-2 rounded-xl text-xs hover:bg-amber-400 transition-all shadow-md disabled:opacity-50 cursor-pointer select-none active:scale-95 flex items-center gap-1.5"
-                >
-                  {publishStatus === 'saving' ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save &amp; Publish Changes</span>
-                  )}
-                </button>
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+          {/* Drawer Footer Actions */}
+          <div className="p-3.5 border-t border-white/10 bg-[#0E131F]/90 shrink-0 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setIsDrawerOpen(false)}
+              className="text-xs text-[#94A3B8] hover:text-white py-1.5 px-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
+            >
+              Hide Panel
+            </button>
+            <button
+              type="button"
+              onClick={publishChanges}
+              disabled={publishStatus === 'saving' || !hasUnsavedChanges}
+              className="bg-[#E69D2B] text-[#0B0F17] font-bold px-4 py-2 rounded-xl text-xs hover:bg-amber-400 transition-all shadow-md disabled:opacity-50 cursor-pointer select-none active:scale-95 flex items-center gap-1.5"
+            >
+              {publishStatus === 'saving' ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save &amp; Publish Changes</span>
+              )}
+            </button>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

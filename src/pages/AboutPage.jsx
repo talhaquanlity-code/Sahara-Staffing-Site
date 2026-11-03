@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Linkedin, Mail } from 'lucide-react';
 import { useUI } from '../context/UIContext';
+import { useCMS } from '../context/CMSContext';
 import saharaMarkImg from '../assets/sahara-mark.png';
 import KineticTalentPipeline from '../components/KineticTalentPipeline';
 
@@ -62,20 +63,16 @@ const STORY_CHAPTERS = [
 ];
 
 // ============================================================================
-// COMPONENT: SECTION FIVE — THE SAHARA MINDSET PINNED SCROLL STORYTELLING
-// Restored pinned scroll-hijacking: GPU-smooth pre-rendered card crossfades
+// COMPONENT: SECTION FIVE — THE SAHARA MINDSET NARRATIVE CHAPTERS
+// Supports two layout engines:
+// 1. 'sticky': Interactive pinned scroll-driven storytelling (h-[300vh], top-[100px], h-[calc(100vh-140px)])
+// 2. 'grid': Clean 2x2 static grid cards for zero scroll-hijacking
 // ============================================================================
-function MindsetPinnedScrollSection({ prefersReducedMotion }) {
+function MindsetSection({ chapters = STORY_CHAPTERS, layoutEngine = 'sticky', prefersReducedMotion }) {
   const containerRef = useRef(null);
   const [activeChapter, setActiveChapter] = useState(0);
-  const [isDesktop, setIsDesktop] = useState(false);
 
-  useEffect(() => {
-    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const activeChapters = chapters && chapters.length > 0 ? chapters : STORY_CHAPTERS;
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -84,61 +81,71 @@ function MindsetPinnedScrollSection({ prefersReducedMotion }) {
 
   useEffect(() => {
     return scrollYProgress.on('change', (latest) => {
-      // Maps 0.0 -> 1.0 cleanly across 3 chapters without lag or glitches
-      const ch = latest < 0.33 ? 0 : latest < 0.67 ? 1 : 2;
+      const total = activeChapters.length;
+      const ch = Math.min(total - 1, Math.floor(latest * total));
       setActiveChapter((prev) => (prev !== ch ? ch : prev));
     });
-  }, [scrollYProgress]);
+  }, [scrollYProgress, activeChapters.length]);
 
-  const current = STORY_CHAPTERS[activeChapter];
+  const current = activeChapters[activeChapter] || activeChapters[0];
 
-  // Mobile Presentation: clean natural card sequence without sticky pinning
-  if (!isDesktop) {
+  // ---------------------------------------------------------------------------
+  // LAYOUT ENGINE B: STATIC GRID CARDS (CLEAN 2x2 GRID, NO SCROLL HIJACKING)
+  // ---------------------------------------------------------------------------
+  if (layoutEngine === 'grid') {
     return (
       <section
         id="about-mindset"
-        className="w-full bg-[#FAF9F6] text-[#080B12] border-t border-[#E7E3D9] py-14 sm:py-20 px-5 sm:px-8"
+        className="w-full bg-[#FAF9F6] text-[#080B12] border-t border-[#E7E3D9] py-16 sm:py-24 px-5 sm:px-10 lg:px-16"
       >
-        <div className="max-w-xl mx-auto space-y-8">
-          <div className="space-y-3">
+        <div className="max-w-[1360px] mx-auto space-y-12">
+          {/* Section Header */}
+          <div className="max-w-2xl space-y-3">
             <div className="flex items-center gap-2.5">
               <span className="w-5 h-[1.5px] bg-[#F5A623]" />
               <span className="text-[11px] font-bold tracking-[0.24em] text-[#B87314] uppercase font-sans">
                 THE SAHARA MINDSET
               </span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#080B12] tracking-tight leading-tight font-sans">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#080B12] tracking-tight leading-tight font-sans">
               A people-centered approach to every search.
             </h2>
-            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed font-sans">
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-sans">
               We believe thoughtful staffing is grounded in perspective, patience, and a genuine
               focus on long-term team cohesion.
             </p>
           </div>
 
-          <div className="space-y-4">
-            {STORY_CHAPTERS.map((ch) => (
+          {/* 2x2 Static Card Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            {activeChapters.map((ch, idx) => (
               <div
-                key={ch.id}
-                className="relative rounded-2xl overflow-hidden bg-[#0D111B] shadow-xl p-5 sm:p-7 text-white min-h-[250px] flex flex-col justify-end border border-black/10"
+                key={ch.id || idx}
+                className="group relative rounded-[28px] overflow-hidden bg-[#0D111B] shadow-xl p-8 sm:p-10 text-white min-h-[340px] flex flex-col justify-end border border-black/10 transition-all duration-300 hover:shadow-2xl"
               >
                 <img
                   src={ch.image}
                   onError={(e) => {
-                    e.currentTarget.src = ch.fallback;
+                    e.currentTarget.src = ch.fallback || '/assets/card1-staffing.jpg';
                   }}
                   alt={ch.title}
-                  className="absolute inset-0 w-full h-full object-cover object-center filter contrast-[1.05]"
+                  className="absolute inset-0 w-full h-full object-cover object-center filter contrast-[1.05] group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#080B12]/95 via-[#080B12]/60 to-[#080B12]/20 pointer-events-none" />
-                <div className="relative z-10 space-y-1.5">
-                  <span className="text-[10.5px] font-sans font-bold tracking-[0.2em] text-[#F5A623] uppercase block">
-                    {ch.badge} &bull; {ch.tag}
-                  </span>
-                  <h3 className="text-xl font-bold tracking-tight text-white font-sans">
+                <div className="relative z-10 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10.5px] font-mono font-bold tracking-[0.2em] text-[#F5A623] uppercase">
+                      {ch.badge || `CHAPTER 0${idx + 1}`}
+                    </span>
+                    <span className="text-white/40 text-xs">&bull;</span>
+                    <span className="text-[11px] text-white/70 font-sans font-medium">
+                      {ch.tag}
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-bold tracking-tight text-white font-sans">
                     {ch.title}
                   </h3>
-                  <p className="text-slate-300 text-xs leading-relaxed font-sans">
+                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed font-sans font-normal pt-1">
                     {ch.text}
                   </p>
                 </div>
@@ -150,14 +157,19 @@ function MindsetPinnedScrollSection({ prefersReducedMotion }) {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // LAYOUT ENGINE A: INTERACTIVE STICKY SCROLL-HIJACK (SMOOTH CROSSFADE)
+  // Strict Container Fix: h-[300vh] with position: relative
+  // Inner Sticky Card Container: position: sticky, top: 100px, h-[calc(100vh-140px)]
+  // ---------------------------------------------------------------------------
   return (
     <section
       ref={containerRef}
       id="about-mindset"
-      className="relative w-full bg-[#FAF9F6] text-[#080B12] border-t border-[#E7E3D9] h-[220vh] sm:h-[240vh]"
+      className="relative w-full bg-[#FAF9F6] text-[#080B12] border-t border-[#E7E3D9] h-[300vh]"
     >
       {/* Pinned Sticky Stage */}
-      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden px-6 sm:px-10 lg:px-16">
+      <div className="sticky top-[100px] h-[calc(100vh-140px)] w-full flex items-center justify-center overflow-hidden px-6 sm:px-10 lg:px-16">
         <div className="max-w-[1360px] mx-auto w-full my-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             
@@ -181,12 +193,12 @@ function MindsetPinnedScrollSection({ prefersReducedMotion }) {
                 focus on long-term team cohesion.
               </p>
 
-              {/* Gold Progress Track (Matches Screenshot: 01 / 03  ━━━━  ACTIVE DISCOVERY & ALIGNMENT) */}
+              {/* Gold Progress Track */}
               <div className="flex items-center gap-5 pt-4">
                 <div className="flex items-center gap-1.5 font-sans text-xs font-extrabold text-[#B87314]">
                   <span>0{activeChapter + 1}</span>
                   <span className="text-slate-300 font-normal">/</span>
-                  <span className="text-slate-400 font-normal">03</span>
+                  <span className="text-slate-400 font-normal">0{activeChapters.length}</span>
                 </div>
 
                 {/* Smooth Progress Bar linked to scroll */}
@@ -202,19 +214,19 @@ function MindsetPinnedScrollSection({ prefersReducedMotion }) {
 
                 {/* Active Chapter Label with Smooth Crossfade */}
                 <span className="text-[11px] font-sans font-bold text-slate-500 uppercase tracking-wider transition-colors duration-300">
-                  {current.tag}
+                  {current?.tag}
                 </span>
               </div>
             </div>
 
-            {/* Right Column: Pre-rendered Layered Visual Cards (No mode="wait" tearing) */}
+            {/* Right Column: Pre-rendered Layered Visual Cards with Fluid Crossfade */}
             <div className="lg:col-span-7">
-              <div className="relative w-full aspect-[16/11] min-h-[420px] sm:min-h-[480px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-[#0D111B] shadow-2xl">
-                {STORY_CHAPTERS.map((ch, idx) => {
+              <div className="relative w-full aspect-[16/11] min-h-[400px] sm:min-h-[460px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-[#0D111B] shadow-2xl">
+                {activeChapters.map((ch, idx) => {
                   const isCurrent = activeChapter === idx;
                   return (
                     <div
-                      key={ch.id}
+                      key={ch.id || idx}
                       className={`absolute inset-0 w-full h-full flex flex-col justify-end p-8 sm:p-12 text-white transition-all duration-700 ease-out ${
                         isCurrent
                           ? 'opacity-100 scale-100 z-10 pointer-events-auto'
@@ -225,7 +237,7 @@ function MindsetPinnedScrollSection({ prefersReducedMotion }) {
                       <img
                         src={ch.image}
                         onError={(e) => {
-                          e.currentTarget.src = ch.fallback;
+                          e.currentTarget.src = ch.fallback || '/assets/card1-staffing.jpg';
                         }}
                         alt={ch.title}
                         className="absolute inset-0 w-full h-full object-cover object-center filter contrast-[1.05]"
@@ -237,7 +249,7 @@ function MindsetPinnedScrollSection({ prefersReducedMotion }) {
                       {/* Overlaid Chapter Content */}
                       <div className="relative z-10 max-w-xl space-y-3">
                         <span className="text-[11px] font-sans font-bold tracking-[0.2em] text-[#F5A623] uppercase block">
-                          {ch.badge} - {ch.tag}
+                          {ch.badge || `CHAPTER 0${idx + 1}`} &bull; {ch.tag}
                         </span>
 
                         <h3 className="text-2xl sm:text-3xl lg:text-[34px] font-extrabold tracking-tight text-white font-sans leading-tight">
@@ -266,6 +278,8 @@ function MindsetPinnedScrollSection({ prefersReducedMotion }) {
 // ============================================================================
 export default function AboutPage({ onNavigateContact, onNavigateServices }) {
   const { openModal } = useUI();
+  const { content } = useCMS();
+  const aboutData = content?.about;
   const heroRef = useRef(null);
 
   // Viewport & Reduced Motion Detection
@@ -349,6 +363,7 @@ export default function AboutPage({ onNavigateContact, onNavigateServices }) {
       {/* Cinematic, asymmetric composition with line-by-line masked reveals    */}
       {/* ===================================================================== */}
       <section
+        id="about-hero"
         ref={heroRef}
         className="relative w-full min-h-[85vh] lg:min-h-[92vh] pt-24 sm:pt-40 lg:pt-44 pb-14 sm:pb-24 px-5 sm:px-10 lg:px-16 flex flex-col justify-center border-b border-white/[0.08] overflow-hidden"
       >
@@ -576,7 +591,7 @@ export default function AboutPage({ onNavigateContact, onNavigateServices }) {
       {/* 06. SECTION FOUR — THE PRINCIPLES THAT DEFINE SAHARA (DARK NAVY)      */}
       {/* Clean horizontal editorial list with modern premium typography        */}
       {/* ===================================================================== */}
-      <section className="relative w-full bg-[#0D111B] text-white py-28 sm:py-36 lg:py-40 px-6 sm:px-10 lg:px-16 border-b border-white/[0.08]">
+      <section id="about-benchmarks" className="relative w-full bg-[#0D111B] text-white py-28 sm:py-36 lg:py-40 px-6 sm:px-10 lg:px-16 border-b border-white/[0.08]">
         <div className="max-w-[1360px] mx-auto space-y-16 sm:space-y-20">
           {/* Section Header */}
           <motion.div
@@ -644,26 +659,155 @@ export default function AboutPage({ onNavigateContact, onNavigateServices }) {
       </section>
 
       {/* ===================================================================== */}
-      {/* 07. SECTION FIVE — THE SAHARA MINDSET (PINNED SCROLL HIJACKING)       */}
+      {/* 07. SECTION FIVE — THE SAHARA MINDSET (SCROLL HIJACK & GRID ENGINES)  */}
       {/* ===================================================================== */}
-      <MindsetPinnedScrollSection prefersReducedMotion={prefersReducedMotion} />
+      <MindsetSection
+        chapters={aboutData?.chapters}
+        layoutEngine={aboutData?.chaptersLayout}
+        prefersReducedMotion={prefersReducedMotion}
+      />
 
       {/* ===================================================================== */}
-      {/* 08. THE SAHARA PHILOSOPHY (KINETIC TALENT PIPELINE & RADAR)           */}
+      {/* 08. SECTION SIX — LEADERSHIP COUNCIL                                  */}
+      {/* ===================================================================== */}
+      <section id="about-leadership" className="relative w-full bg-[#0D111B] text-white py-24 sm:py-32 px-6 sm:px-10 lg:px-16 border-b border-white/[0.08]">
+        <div className="max-w-[1360px] mx-auto space-y-16">
+          <div className="max-w-3xl space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="w-6 h-[1.5px] bg-[#F5A623]" />
+              <span className="text-[11px] sm:text-xs font-bold tracking-[0.24em] text-[#F5A623] uppercase font-sans">
+                EXECUTIVE STEWARDSHIP
+              </span>
+            </div>
+            <h2 className="text-3xl sm:text-5xl lg:text-[54px] font-extrabold text-white tracking-[-0.03em] leading-[1.08] font-sans">
+              The Leadership Council.
+            </h2>
+            <p className="text-slate-300 text-base sm:text-lg leading-relaxed font-sans max-w-2xl">
+              Seasoned search practitioners with decades of domain depth in distributed systems, strategic finance, and technical diligence.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {(aboutData?.leadership || [
+              {
+                id: 'lead-1',
+                name: 'Elena Vance',
+                title: 'VP of Systems Engineering',
+                bio: '14 years leading infrastructure architecture and distributed platform scaling.',
+                image: '/assets/female-executive-beige.jpg',
+              },
+              {
+                id: 'lead-2',
+                name: 'David Reynolds',
+                title: 'Managing Partner, Executive Search',
+                bio: 'Specialized in discreet board-level C-Suite and VP appointments.',
+                image: '/assets/card2-talent.jpg',
+              },
+              {
+                id: 'lead-3',
+                name: 'Marcus Chen',
+                title: 'Head of Technical Diligence',
+                bio: 'Pioneered peer-level technical assessments for top 2% engineering talent.',
+                image: '/assets/card1-staffing.jpg',
+              },
+            ]).map((leader, idx) => (
+              <div
+                key={leader.id || idx}
+                className="group rounded-3xl bg-[#131926]/80 border border-white/10 p-6 space-y-5 hover:border-[#F5A623]/40 transition-all duration-300 shadow-xl"
+              >
+                <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-[#0B0F17]">
+                  <img
+                    src={leader.image}
+                    onError={(e) => { e.currentTarget.src = '/assets/card1-staffing.jpg'; }}
+                    alt={leader.name}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500 filter contrast-[1.05]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F17]/90 via-transparent to-transparent pointer-events-none" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-white font-sans group-hover:text-[#F5A623] transition-colors">
+                      {leader.name}
+                    </h3>
+                    <span className="text-[10px] font-mono text-[#F5A623] px-2 py-0.5 rounded bg-[#F5A623]/10">
+                      PARTNER
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-[#F5A623] tracking-wide font-sans">
+                    {leader.title}
+                  </p>
+                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed font-sans pt-1">
+                    {leader.bio}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===================================================================== */}
+      {/* 09. SECTION SEVEN — HARD SCALE STATS                                  */}
+      {/* ===================================================================== */}
+      <section id="about-stats" className="relative w-full bg-[#FAF9F6] text-[#080B12] py-20 sm:py-28 px-6 sm:px-10 lg:px-16 border-b border-[#E7E3D9]">
+        <div className="max-w-[1360px] mx-auto space-y-12">
+          <div className="max-w-2xl space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="w-6 h-[1.5px] bg-[#F5A623]" />
+              <span className="text-[11px] sm:text-xs font-bold tracking-[0.24em] text-[#B87314] uppercase font-sans">
+                MEASURABLE SCALE
+              </span>
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-[#080B12] tracking-tight leading-tight font-sans">
+              Proven Velocity at Scale.
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {(aboutData?.stats || [
+              { value: '500+', label: 'Placements Delivered' },
+              { value: '98%', label: 'Retention SLA' },
+              { value: '14 Days', label: 'Average Time-to-Fill' },
+              { value: '$250M+', label: 'Enterprise Value Backed' },
+            ]).map((stat, idx) => (
+              <div key={idx} className="p-6 rounded-2xl bg-white border border-[#E7E3D9] shadow-sm space-y-2">
+                <span className="text-3xl sm:text-5xl font-extrabold text-[#B87314] tracking-tight font-sans block">
+                  {stat.value}
+                </span>
+                <span className="text-xs sm:text-sm font-semibold text-slate-700 tracking-wide font-sans block">
+                  {stat.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===================================================================== */}
+      {/* 10. THE SAHARA PHILOSOPHY (KINETIC TALENT PIPELINE & RADAR)           */}
       {/* ===================================================================== */}
       <KineticTalentPipeline />
 
       {/* ===================================================================== */}
-      {/* 08. SECTION SIX — AN ELEGANT BRAND CLOSING (DEEP OBSIDIAN #080B12)    */}
-      {/* Strong editorial typography, single primary CTA, official mark       */}
+      {/* 11. SECTION NINE — AN ELEGANT BRAND CLOSING (DEEP OBSIDIAN #080B12)   */}
       {/* ===================================================================== */}
-      <section className="relative w-full bg-[#080B12] text-white py-28 sm:py-36 lg:py-44 px-6 sm:px-10 lg:px-16 text-center overflow-hidden">
+      <section id="about-final-cta" className="relative w-full bg-[#080B12] text-white py-28 sm:py-36 lg:py-44 px-6 sm:px-10 lg:px-16 text-center overflow-hidden">
+        {aboutData?.finalCta?.backgroundImage && (
+          <div className="absolute inset-0 pointer-events-none opacity-25">
+            <img
+              src={aboutData.finalCta.backgroundImage}
+              alt="Background overlay"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#080B12] via-[#080B12]/80 to-[#080B12]" />
+          </div>
+        )}
         <motion.div
           initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 22 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-40px' }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-[880px] mx-auto space-y-7 sm:space-y-8"
+          className="relative z-10 max-w-[880px] mx-auto space-y-7 sm:space-y-8"
         >
           {/* Official Sahara Golden Symbol as Tasteful Signature */}
           <div className="flex justify-center">
@@ -681,13 +825,12 @@ export default function AboutPage({ onNavigateContact, onNavigateServices }) {
 
           {/* Main Headline */}
           <h2 className="text-3xl sm:text-5xl lg:text-[62px] font-extrabold text-white tracking-[-0.035em] leading-[1.06] font-sans">
-            Let&rsquo;s find the right people <br className="hidden sm:block" />
-            <span className="text-[#F5A623]">for your team.</span>
+            {aboutData?.finalCta?.headline || "Let's find the right people for your team."}
           </h2>
 
           {/* Supporting Copy */}
           <p className="text-slate-300 text-base sm:text-lg lg:text-xl max-w-xl mx-auto leading-relaxed font-sans font-normal">
-            Tell us about your business and your hiring needs. Let&rsquo;s start a conversation.
+            {aboutData?.finalCta?.subtitle || "Tell us about your business and your hiring needs. Let's start a conversation."}
           </p>
 
           {/* Single Primary CTA Button */}
@@ -697,13 +840,10 @@ export default function AboutPage({ onNavigateContact, onNavigateServices }) {
               onClick={handleContactClick}
               className="bg-[#F5A623] hover:bg-[#F2A51A] text-[#080B12] font-bold text-sm sm:text-base px-9 sm:px-10 py-4 rounded-full inline-flex items-center gap-3 shadow-xl hover:shadow-2xl transition-all duration-300 active:scale-95 group cursor-pointer"
             >
-              <span>Discuss Your Hiring Needs</span>
+              <span>{aboutData?.finalCta?.buttons?.[0]?.label || 'Discuss Your Hiring Needs'}</span>
               <ArrowRight className="w-4 h-4 text-[#080B12] group-hover:translate-x-1.5 transition-transform duration-300" />
             </button>
           </div>
-
-          {/* Direct Communication Details */}
-         
         </motion.div>
       </section>
     </div>
